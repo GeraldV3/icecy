@@ -91,12 +91,15 @@ const GraphScreen = () => {
           timestamp: new Date(entry.time),
         }));
 
-        setEmotionHistory({
+        const newHistory = {
           [userId]: {
             childName: data.childName || "Your Child",
             records,
           },
-        });
+        };
+
+        setEmotionHistory(newHistory);
+        setFilteredEmotionHistory(newHistory); // ✅ ADD THIS LINE
 
         const markedDates = records.reduce((acc, { timestamp }) => {
           const formattedDate = dayjs(timestamp).format("YYYY-MM-DD");

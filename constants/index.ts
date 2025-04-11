@@ -1,6 +1,7 @@
 import eyecross from "@/assets/icons/eyecross.png";
 import home from "@/assets/icons/home.png";
 import chat from "@/assets/icons/chat.png";
+import bot from "@/assets/icons/robot.png";
 import profile from "@/assets/icons/profile.png";
 import check from "@/assets/images/check.png";
 import angry_1 from "@/assets/images/Emotions/angry-1.png";
@@ -66,6 +67,7 @@ export const icons = {
   lock,
   person,
   graph,
+  bot,
 };
 
 export const paragraphs = {

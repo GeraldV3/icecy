@@ -71,8 +71,8 @@ export default function Layout() {
           tabBarIcon: ({ focused }) => (
             <TabIconWithLabel
               focused={focused}
-              source={icons.chat}
-              label="Chat"
+              source={icons.bot}
+              label="Insights"
             />
           ),
         }}
@@ -88,6 +88,21 @@ export default function Layout() {
               focused={focused}
               source={icons.graph}
               label="Graph"
+            />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="chat" // make sure you have a screen named chat.tsx or chat/index.tsx
+        options={{
+          title: "Chat",
+          headerShown: false,
+          tabBarIcon: ({ focused }) => (
+            <TabIconWithLabel
+              focused={focused}
+              source={icons.chat}
+              label="Chat"
             />
           ),
         }}
