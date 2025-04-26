@@ -1,5 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  ActivityIndicator,
+} from "react-native";
 import { SwipeListView } from "react-native-swipe-list-view";
 import { useRouter } from "expo-router";
 import { getDatabase, ref, onValue, get, remove } from "firebase/database";
@@ -18,23 +25,33 @@ const ChatList = () => {
   const router = useRouter();
   const [role, setRole] = useState<"teacher" | "parent" | null>(null);
   const [chatList, setChatList] = useState<ChatItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user?.id) return;
 
     const db = getDatabase();
     const fetchRole = async () => {
-      const teacherSnap = await get(
-        ref(db, `Users/Teachers/TeacherId/${user.id}`),
-      );
-      if (teacherSnap.exists()) return setRole("teacher");
-
-      const parentSnap = await get(
-        ref(db, `Users/Teachers/Class-A/Parents/${user.id}`),
-      );
-      if (parentSnap.exists()) return setRole("parent");
-
-      setRole(null);
+      try {
+        const teacherSnap = await get(
+          ref(db, `Users/Teachers/TeacherId/${user.id}`),
+        );
+        if (teacherSnap.exists()) {
+          setRole("teacher");
+        } else {
+          const parentSnap = await get(
+            ref(db, `Users/Teachers/Class-A/Parents/${user.id}`),
+          );
+          if (parentSnap.exists()) {
+            setRole("parent");
+          } else {
+            setRole(null); // Default null if no role found
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching role:", error);
+        setRole(null);
+      }
     };
 
     fetchRole();
@@ -44,11 +61,17 @@ const ChatList = () => {
     if (!user?.id || !role) return;
     const db = getDatabase();
 
+    setLoading(true); // Start loading
+
     if (role === "teacher") {
       const parentRef = ref(db, `Users/Teachers/Class-A/Parents`);
       onValue(parentRef, async (snapshot) => {
         const data = snapshot.val();
-        if (!data) return;
+        if (!data) {
+          setChatList([]);
+          setLoading(false);
+          return;
+        }
 
         const list: ChatItem[] = await Promise.all(
           Object.entries(data).map(async ([parentId, val]: any) => {
@@ -97,6 +120,7 @@ const ChatList = () => {
           (a, b) => b.lastTimestamp - a.lastTimestamp,
         );
         setChatList(sortedByTime);
+        setLoading(false);
       });
     }
 
@@ -114,7 +138,11 @@ const ChatList = () => {
           if (teacherList) assignedTeacherId = Object.keys(teacherList)[0];
         }
 
-        if (!assignedTeacherId) return;
+        if (!assignedTeacherId) {
+          setChatList([]);
+          setLoading(false);
+          return;
+        }
 
         const teacherSnap = await get(
           ref(db, `Users/Teachers/TeacherId/${assignedTeacherId}`),
@@ -149,6 +177,7 @@ const ChatList = () => {
             lastTimestamp,
           },
         ]);
+        setLoading(false);
       });
     }
   }, [role, user]);
@@ -173,7 +202,6 @@ const ChatList = () => {
         onPress: async () => {
           const db = getDatabase();
           await remove(ref(db, `Chats/${chatId}`));
-          // Firebase listener will auto-update chatList
         },
       },
     ]);
@@ -225,96 +253,102 @@ const ChatList = () => {
       <Text style={styles.title}>
         {role === "teacher" ? "Chat with Parents" : "Chat with Teacher"}
       </Text>
-      <SwipeListView
-        data={chatList}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-        renderHiddenItem={renderHiddenItem}
-        rightOpenValue={-80}
-        disableRightSwipe
-        showsVerticalScrollIndicator={false}
-      />
+      {loading ? (
+        <ActivityIndicator size="large" color="#006A71" />
+      ) : (
+        <SwipeListView
+          data={chatList}
+          keyExtractor={(item) => item.id}
+          renderItem={renderItem}
+          renderHiddenItem={renderHiddenItem}
+          rightOpenValue={-80}
+          disableRightSwipe
+          showsVerticalScrollIndicator={false}
+        />
+      )}
     </View>
   );
 };
-
-export default ChatList;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingTop: 60,
     paddingHorizontal: 20,
-    backgroundColor: "#f9fafb",
+    backgroundColor: "#F2EFE7", // Light Beige
   },
   title: {
     fontSize: 28,
     fontWeight: "bold",
-    color: "#1f2937",
+    color: "#006A71", // Dark Teal
     textAlign: "center",
     marginBottom: 30,
   },
   card: {
-    backgroundColor: "#ffffff",
+    backgroundColor: "#FFFFFF",
     flexDirection: "row",
     alignItems: "center",
     padding: 16,
-    borderRadius: 16,
+    borderRadius: 12, // Rounded corners for the card
     marginBottom: 16,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.1, // Lighter shadow for a cleaner look
+    shadowRadius: 10,
+    elevation: 3, // Slight elevation for subtle 3D effect
   },
   avatar: {
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: "#e0e7ff",
+    backgroundColor: "#9ACBD0", // Soft Blue
     justifyContent: "center",
     alignItems: "center",
     marginRight: 16,
+    borderWidth: 2, // Adding a border around the avatar
+    borderColor: "#006A71", // Dark teal color for the border
   },
   avatarText: {
     fontWeight: "bold",
     fontSize: 20,
-    color: "#4338ca",
+    color: "#FFFFFF", // White text for contrast
   },
   name: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#111827",
+    color: "#111827", // Dark color
     marginBottom: 2,
   },
   lastMessage: {
     fontSize: 14,
-    color: "#6b7280",
+    color: "#6B7280", // Light gray
   },
   unreadBadge: {
-    backgroundColor: "#ef4444",
+    backgroundColor: "#EF4444", // Red
     borderRadius: 10,
     paddingHorizontal: 8,
     paddingVertical: 2,
     marginLeft: 8,
   },
   unreadText: {
-    color: "#fff",
+    color: "#FFF",
     fontWeight: "bold",
     fontSize: 12,
   },
   rowBack: {
     alignItems: "center",
-    backgroundColor: "#f87171",
+    backgroundColor: "#F87171", // Red for the archive action
     flex: 1,
     justifyContent: "center",
     paddingRight: 24,
-    borderRadius: 16,
+    borderRadius: 12, // Rounded corners for the archive action button
     marginBottom: 16,
   },
   archiveText: {
-    color: "#fff",
+    color: "#FFF",
     fontWeight: "bold",
     fontSize: 14,
   },
 });
+
+export default ChatList;

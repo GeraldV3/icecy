@@ -1,7 +1,7 @@
 import { Stack } from "expo-router";
 
-import { FormProvider } from "@/app/(auth)/FormContext"; // Assuming this is for Parents
-import { TeacherFormProvider } from "@/app/(auth)/TeacherFormContext";
+import { FormProvider } from "@/(auth)/FormContext";
+import { TeacherFormProvider } from "@/(auth)/TeacherFormContext";
 
 const AuthLayout = () => {
   return (

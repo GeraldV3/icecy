@@ -1,41 +1,59 @@
-import eyecross from "@/assets/icons/eyecross.png";
-import home from "@/assets/icons/home.png";
-import chat from "@/assets/icons/chat.png";
-import bot from "@/assets/icons/robot.png";
-import profile from "@/assets/icons/profile.png";
-import check from "@/assets/images/check.png";
-import angry_1 from "@/assets/images/Emotions/angry-1.png";
-import angry_2 from "@/assets/images/Emotions/angry-2.png";
-import angry_3 from "@/assets/images/Emotions/angry-3.png";
-import happy_1 from "@/assets/images/Emotions/happy-1.png";
-import happy_2 from "@/assets/images/Emotions/happy-2.png";
-import happy_3 from "@/assets/images/Emotions/happy-3.png";
-import neutral_1 from "@/assets/images/Emotions/neutral-1.png";
-import neutral_2 from "@/assets/images/Emotions/neutral-2.png";
-import neutral_3 from "@/assets/images/Emotions/neutral-3.png";
-import sad_1 from "@/assets/images/Emotions/sad-1.png";
-import sad_2 from "@/assets/images/Emotions/sad-2.png";
-import sad_3 from "@/assets/images/Emotions/sad-3.png";
-import surprised_1 from "@/assets/images/Emotions/surprised-1.png";
-import surprised_2 from "@/assets/images/Emotions/surprised-2.png";
-import surprised_3 from "@/assets/images/Emotions/surprised-3.png";
-import onboarding1 from "@/assets/images/onboarding1.png";
-import onboarding2 from "@/assets/images/onboarding2.png";
-import onboarding3 from "@/assets/images/onboarding3.png";
-import startBg from "@/assets/images/start-bg.png";
-import history from "@/assets/images/history.png";
-import face from "@/assets/images/face.png";
-import email from "@/assets/icons/email.png";
-import lock from "@/assets/icons/lock.png";
-import person from "@/assets/icons/person.png";
-import graph from "@/assets/icons/line-chart.png";
+// ICONS
+import eyecross from "@assets/icons/eyecross.png";
+import home from "@assets/icons/home.png";
+import chat from "@assets/icons/chat.png";
+import bot from "@assets/icons/robot.png";
+import profile from "@assets/icons/profile.png";
+import email from "@assets/icons/email.png";
+import lock from "@assets/icons/lock.png";
+import person from "@assets/icons/person.png";
+import graph from "@assets/icons/line-chart.png";
+
+// IMAGES
+import check from "@assets/images/check.png";
+import onboarding1 from "@assets/images/onboarding1.png";
+import onboarding2 from "@assets/images/onboarding2.png";
+import onboarding3 from "@assets/images/onboarding3.png";
+import startBg from "@assets/images/start-bg.png";
+import history from "@assets/images/history.png";
+import face from "@assets/images/face.png";
+
+// EMOTIONS
+import angry_1 from "@assets/images/Emotions/angry-1.png";
+import angry_2 from "@assets/images/Emotions/angry-2.png";
+import angry_3 from "@assets/images/Emotions/angry-3.png";
+import happy_1 from "@assets/images/Emotions/happy-1.png";
+import happy_2 from "@assets/images/Emotions/happy-2.png";
+import happy_3 from "@assets/images/Emotions/happy-3.png";
+import neutral_1 from "@assets/images/Emotions/neutral-1.png";
+import neutral_2 from "@assets/images/Emotions/neutral-2.png";
+import neutral_3 from "@assets/images/Emotions/neutral-3.png";
+import sad_1 from "@assets/images/Emotions/sad-1.png";
+import sad_2 from "@assets/images/Emotions/sad-2.png";
+import sad_3 from "@assets/images/Emotions/sad-3.png";
+import surprised_1 from "@assets/images/Emotions/surprised-1.png";
+import surprised_2 from "@assets/images/Emotions/surprised-2.png";
+import surprised_3 from "@assets/images/Emotions/surprised-3.png";
+
+// GROUPED EXPORTS
+export const icons = {
+  eyecross,
+  home,
+  chat,
+  bot,
+  profile,
+  email,
+  lock,
+  person,
+  graph,
+};
 
 export const images = {
+  check,
   onboarding1,
   onboarding2,
   onboarding3,
   startBg,
-  check,
   history,
   face,
 };
@@ -56,18 +74,6 @@ export const emotions = {
   surprised_1,
   surprised_2,
   surprised_3,
-};
-
-export const icons = {
-  eyecross,
-  home,
-  chat,
-  profile,
-  email,
-  lock,
-  person,
-  graph,
-  bot,
 };
 
 export const paragraphs = {

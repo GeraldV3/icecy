@@ -3,12 +3,11 @@ import * as FileSystem from "expo-file-system";
 import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
-import { ActivityIndicator } from "react-native";
-import { View, Text, Image, Alert } from "react-native";
+import { ActivityIndicator, View, Text, Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-
-import { database, ref, set } from "@/app/(api)/firebaseConfig"; // Import database tools
-import CustomButton from "@/components/CustomButton";
+import { database, ref, set } from "@/(api)/firebaseConfig";
+import { ReactNativeModal } from "react-native-modal";
+import CustomButton from "@components/CustomButton";
 import { images } from "@/constants";
 
 const FaceDetection = () => {
@@ -17,32 +16,31 @@ const FaceDetection = () => {
   const [facesDetected, setFacesDetected] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // Save image data to Firebase Realtime Database under a user
+  const [errorModalVisible, setErrorModalVisible] = useState(false);
+  const [errorTitle, setErrorTitle] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const showErrorModal = (title: string, message: string) => {
+    setErrorTitle(title);
+    setErrorMessage(message);
+    setErrorModalVisible(true);
+  };
+
   const saveToDatabase = async (
     userId: string,
     uri: string,
     filename: string,
   ) => {
     try {
-      console.log("Preparing to save image to Firebase Realtime Database...");
-
-      // Sanitize the filename for Realtime Database
       const sanitizedFilename = filename.replace(/\./g, "_");
-
-      // Convert the image to Base64
       const base64String = await FileSystem.readAsStringAsync(uri, {
         encoding: FileSystem.EncodingType.Base64,
       });
-
       const userRef = ref(database, `users/${userId}/faceRecognition`);
       await set(userRef, {
         filename: sanitizedFilename,
         imageData: base64String,
       });
-
-      console.log(
-        "Image saved successfully under user in Firebase Realtime Database.",
-      );
       return `https://profile-29971-default-rtdb.asia-southeast1.firebasedatabase.app/users/${userId}/faceRecognition`;
     } catch (error) {
       console.error("Error saving image to Firebase Realtime Database:", error);
@@ -50,26 +48,18 @@ const FaceDetection = () => {
     }
   };
 
-  // Capture image using the camera
   const handleCapture = async () => {
     try {
       const { granted } = await ImagePicker.requestCameraPermissionsAsync();
       if (!granted) {
-        Alert.alert("Permission Required", "Camera access is required.");
+        showErrorModal("Permission Required", "Camera access is required.");
         return;
       }
 
-      const proceedToCamera = await new Promise<boolean>((resolve) => {
-        Alert.alert(
-          "Tip",
-          "For better accuracy, ensure good lighting while capturing the image.",
-          [{ text: "OK", onPress: () => resolve(true) }],
-        );
+      await new Promise((resolve) => {
+        setTimeout(resolve, 500); // Short delay for tip
       });
 
-      if (!proceedToCamera) return;
-
-      // Reset previous image data
       setImageUri(null);
       setFacesDetected(false);
 
@@ -82,20 +72,19 @@ const FaceDetection = () => {
         const uri = result.assets[0].uri;
         if (!uri) throw new Error("No image URI found.");
 
-        // Save the new image URI
         setImageUri(uri);
-        console.log("Captured Image URI:", uri);
-
         await detectFace(uri);
       }
     } catch (error) {
       console.error("Error capturing image:", error);
-      Alert.alert("Error", "An error occurred while capturing the image.");
+      showErrorModal(
+        "Capture Error",
+        "An error occurred while capturing the image.",
+      );
     }
   };
 
   const detectFace = async (uri: string) => {
-    console.log("Starting face detection...");
     try {
       const options = {
         mode: FaceDetector.FaceDetectorMode.accurate,
@@ -104,32 +93,23 @@ const FaceDetection = () => {
       };
 
       const result = await FaceDetector.detectFacesAsync(uri, options);
-      console.log("Face detection result:", result);
 
-      if (result.faces?.length > 0) {
-        console.log(`Detected ${result.faces.length} face(s).`);
-
-        // Ensure only one face is detected
+      if (result.faces && result.faces.length > 0) {
         if (result.faces.length > 1) {
-          Alert.alert(
+          showErrorModal(
             "Multiple Faces Detected",
             "Please ensure only one face is in the frame.",
           );
           return;
         }
 
-        const face = result.faces[0]; // Get the first detected face
+        const face = result.faces[0];
         const { bounds } = face;
-
-        // Validate face bounds
         const faceArea = bounds.size.width * bounds.size.height;
         const imageArea = result.image.width * result.image.height;
 
         if (faceArea < 0.2 * imageArea) {
-          Alert.alert(
-            "Face Not Fully Visible",
-            "Your face is too small in the frame. Please move closer.",
-          );
+          showErrorModal("Face Too Small", "Move closer to the camera.");
           return;
         }
 
@@ -139,14 +119,13 @@ const FaceDetection = () => {
           bounds.origin.x + bounds.size.width > result.image.width ||
           bounds.origin.y + bounds.size.height > result.image.height
         ) {
-          Alert.alert(
-            "Face Not Properly Positioned",
-            "Ensure your entire face is visible within the frame.",
+          showErrorModal(
+            "Face Misaligned",
+            "Center your face properly within the frame.",
           );
           return;
         }
 
-        // Define required landmarks
         const requiredLandmarks = [
           "LEFT_EYE",
           "RIGHT_EYE",
@@ -154,55 +133,44 @@ const FaceDetection = () => {
           "LEFT_MOUTH",
           "RIGHT_MOUTH",
         ];
-
-        // Check for missing landmarks
         const missingLandmarks: string[] = [];
+
         requiredLandmarks.forEach((key) => {
           const landmark = face[key as keyof typeof face];
-          if (landmark) {
-            console.log(`${key}: Detected`);
-          } else {
-            console.log(`${key}: Not Detected`);
+          if (!landmark) {
             missingLandmarks.push(key);
           }
         });
 
         if (missingLandmarks.length > 0) {
-          Alert.alert(
+          showErrorModal(
             "Face Validation Failed",
-            `Missing landmarks: ${missingLandmarks.join(
-              ", ",
-            )}. Ensure all required facial features are visible.`,
+            `Missing landmarks: ${missingLandmarks.join(", ")}.`,
           );
           return;
         }
 
-        // All validations passed
-        Alert.alert(
-          "Face Detected",
-          "Your face is fully visible with all required features detected.",
-        );
-        setFacesDetected(true); // Update the state to indicate successful detection
+        setFacesDetected(true);
       } else {
-        // No face detected
-        Alert.alert(
+        showErrorModal(
           "No Face Detected",
-          "Please ensure your entire face is clearly visible in the frame.",
+          "Please ensure your face is clearly visible.",
         );
       }
     } catch (error) {
       console.error("Face detection error:", error);
-      Alert.alert("Error", "Face detection failed. Please try again.");
+      showErrorModal(
+        "Detection Error",
+        "Face detection failed. Please try again.",
+      );
     }
   };
 
-  // Handle Done button press
-  // Overwrite existing image in the database
   const handleDone = async () => {
     if (!imageUri || !facesDetected) {
-      Alert.alert(
-        "Error",
-        "Ensure a face is detected and an image is captured.",
+      showErrorModal(
+        "Missing Face Scan",
+        "Capture and validate your face first.",
       );
       return;
     }
@@ -210,16 +178,15 @@ const FaceDetection = () => {
     setLoading(true);
 
     try {
-      const userId = "user_2rI4yE3vW85lw6XU2Sit7a65amJ"; // Replace with actual user ID
-      const filename = "face.jpg"; // Use a fixed filename to overwrite the previous image
+      const userId = "user_2rI4yE3vW85lw6XU2Sit7a65amJ"; // Replace with dynamic user ID if needed
+      const filename = "face.jpg";
+
       const base64String = await FileSystem.readAsStringAsync(imageUri, {
         encoding: FileSystem.EncodingType.Base64,
       });
 
-      // Save the new image to Firebase
       await saveToDatabase(userId, imageUri, filename);
 
-      // Pass the Base64 string and filename to the Sign-Up page
       router.push({
         pathname: "/sign-up",
         params: {
@@ -230,7 +197,7 @@ const FaceDetection = () => {
       });
     } catch (error) {
       console.error("Error saving image:", error);
-      Alert.alert("Error", "Failed to save image. Please try again.");
+      showErrorModal("Save Error", "Failed to save image. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -242,7 +209,7 @@ const FaceDetection = () => {
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
-        backgroundColor: "white",
+        backgroundColor: "#F2EFE7",
       }}
     >
       {loading ? (
@@ -253,18 +220,21 @@ const FaceDetection = () => {
           <Text style={{ fontSize: 24, marginBottom: 20, textAlign: "center" }}>
             Please wait...
           </Text>
-
-          <ActivityIndicator size="large" color="blue" />
+          <ActivityIndicator size="large" color="#006A71" />
         </View>
       ) : (
         <>
           <View style={{ alignItems: "center", marginBottom: 16 }}>
-            <Text style={{ fontSize: 24, fontWeight: "bold" }}>
+            <Text
+              style={{ fontSize: 24, fontWeight: "bold", color: "#006A71" }}
+            >
               Set up Face ID
             </Text>
-            <Text>Scan the face to verify identity</Text>
+            <Text style={{ color: "#006A71" }}>
+              Scan the face to verify identity
+            </Text>
             <Text style={{ marginTop: 8, fontStyle: "italic", color: "gray" }}>
-              Tip: Please ensure good lighting for better accuracy.
+              Tip: Ensure good lighting for better results.
             </Text>
           </View>
 
@@ -276,7 +246,7 @@ const FaceDetection = () => {
                 height: 300,
                 marginTop: 20,
                 borderWidth: 2,
-                borderColor: facesDetected ? "green" : "red",
+                borderColor: facesDetected ? "#48A6A7" : "#F44336",
               }}
             />
           ) : (
@@ -291,14 +261,18 @@ const FaceDetection = () => {
             <CustomButton
               title="Capture Image"
               onPress={handleCapture}
-              style={{ marginTop: 20, width: 250, backgroundColor: "black" }}
+              style={{ marginTop: 20, width: 250, backgroundColor: "#006A71" }}
             />
           ) : (
             <>
               <CustomButton
                 title="Try Again"
                 onPress={handleCapture}
-                style={{ marginTop: 20, width: 250, backgroundColor: "orange" }}
+                style={{
+                  marginTop: 20,
+                  width: 250,
+                  backgroundColor: "#FF9800",
+                }}
               />
               {facesDetected && (
                 <CustomButton
@@ -307,7 +281,7 @@ const FaceDetection = () => {
                   style={{
                     marginTop: 20,
                     width: 250,
-                    backgroundColor: "green",
+                    backgroundColor: "#48A6A7",
                   }}
                 />
               )}
@@ -315,6 +289,28 @@ const FaceDetection = () => {
           )}
         </>
       )}
+
+      {/* Error Modal */}
+      <ReactNativeModal
+        isVisible={errorModalVisible}
+        onBackdropPress={() => setErrorModalVisible(false)}
+        backdropOpacity={0.5}
+        className="justify-center items-center"
+      >
+        <View className="bg-white px-6 py-8 rounded-lg w-full max-w-[90%]">
+          <Text className="text-2xl font-bold text-center mb-4 text-[#006A71]">
+            {errorTitle}
+          </Text>
+          <Text className="text-base text-center text-gray-700 mb-6">
+            {errorMessage}
+          </Text>
+          <CustomButton
+            title="Close"
+            onPress={() => setErrorModalVisible(false)}
+            className="bg-[#9ACBD0]"
+          />
+        </View>
+      </ReactNativeModal>
     </SafeAreaView>
   );
 };

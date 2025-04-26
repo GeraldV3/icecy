@@ -1,9 +1,17 @@
-import { Ionicons } from "@expo/vector-icons";
-import React, { useState } from "react";
-import { View, StyleSheet, Text, Modal, TouchableOpacity } from "react-native";
+import React, { useState, useRef } from "react";
+import {
+  View,
+  StyleSheet,
+  Modal,
+  Text,
+  TouchableOpacity,
+  ScrollView,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
+import { useFocusEffect } from "@react-navigation/native";
 
+// Tutorial Steps
 const tutorialSteps = [
   { id: 1, text: "Start by saying 'Hi' or 'Hello' to the bot." },
   { id: 2, text: "Answer the questions given by the bot." },
@@ -12,61 +20,71 @@ const tutorialSteps = [
   { id: 5, text: "Share your chat if needed using the provided options." },
 ];
 
+// Generate random session ID
+const generateSessionId = () => {
+  return "user_" + Math.random().toString(36).substr(2, 9);
+};
+
 const ChatScreen = () => {
   const [showTutorial, setShowTutorial] = useState(false);
+  const [sessionId] = useState(generateSessionId());
+  const hasShownTutorial = useRef(false); // Track if the modal was already shown
 
-  const openTutorial = () => {
-    setShowTutorial(true);
-  };
+  useFocusEffect(
+    React.useCallback(() => {
+      if (!hasShownTutorial.current) {
+        setShowTutorial(true);
+        hasShownTutorial.current = true;
+      }
+      return () => {};
+    }, []),
+  );
 
-  const closeTutorial = () => {
-    setShowTutorial(false);
-  };
+  const closeTutorial = () => setShowTutorial(false);
 
   return (
     <SafeAreaView style={styles.safeContainer}>
       <View style={styles.container}>
+        {/* WebView for the chatbot */}
         <WebView
           source={{
-            uri: "https://cdn.botpress.cloud/webchat/v2.2/shareable.html?configUrl=https://files.bpcontent.cloud/2025/01/06/08/20250106081719-HOVC2RN2.json",
+            uri: `https://cdn.botpress.cloud/webchat/v2.4/shareable.html?configUrl=https://files.bpcontent.cloud/2025/01/06/08/20250106081719-HOVC2RN2.json&sessionId=${sessionId}`,
           }}
           style={styles.webview}
         />
-
-        {/* Floating Button for Tutorial */}
-        <TouchableOpacity style={styles.floatingButton} onPress={openTutorial}>
-          <Ionicons name="help-circle" size={40} color="gray" />
-        </TouchableOpacity>
       </View>
 
       {/* Tutorial Modal */}
-      {showTutorial && (
-        <Modal
-          animationType="slide"
-          transparent={true}
-          visible={showTutorial}
-          onRequestClose={closeTutorial}
-        >
-          <View style={styles.tutorialOverlay}>
-            <View style={styles.tutorialContent}>
-              <Text style={styles.tutorialTitle}>Welcome to EYES Bot!</Text>
+      <Modal
+        animationType="fade"
+        transparent
+        visible={showTutorial}
+        onRequestClose={closeTutorial}
+      >
+        <View style={styles.tutorialOverlay}>
+          <View style={styles.tutorialContent}>
+            <Text style={styles.tutorialTitle}>Welcome to EYES Bot!</Text>
 
+            <ScrollView
+              style={styles.scrollView}
+              showsVerticalScrollIndicator={false}
+            >
               {tutorialSteps.map((step) => (
                 <Text key={step.id} style={styles.tutorialStep}>
                   {step.id}. {step.text}
                 </Text>
               ))}
+            </ScrollView>
 
-              <TouchableOpacity
-                style={styles.closeButton}
-                onPress={closeTutorial}
-              >
-                <Text style={styles.closeButtonText}>Close</Text>
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity
+              style={styles.closeButton}
+              onPress={closeTutorial}
+            >
+              <Text style={styles.closeButtonText}>Got it!</Text>
+            </TouchableOpacity>
           </View>
-        </Modal>
-      )}
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -74,60 +92,60 @@ const ChatScreen = () => {
 const styles = StyleSheet.create({
   safeContainer: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "#F2EFE7",
   },
   container: {
     flex: 1,
-    marginBottom: 40,
   },
   webview: {
     flex: 1,
-  },
-  floatingButton: {
-    position: "absolute",
-    top: 38,
-    left: "50%",
-    transform: [{ translateX: -35 }, { translateY: -35 }],
-    borderRadius: 35,
-    padding: 1,
+    marginBottom: 25,
   },
   tutorialOverlay: {
     flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    padding: 20,
   },
   tutorialContent: {
-    width: "85%",
+    width: "90%",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
     padding: 20,
-    backgroundColor: "#fff",
-    borderRadius: 10,
     alignItems: "center",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 8,
   },
   tutorialTitle: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: "bold",
-    marginBottom: 15,
+    color: "#006A71",
+    marginBottom: 20,
+    textAlign: "center",
+  },
+  scrollView: {
+    maxHeight: 280,
+    width: "100%",
+    marginBottom: 20,
   },
   tutorialStep: {
     fontSize: 16,
-    textAlign: "center",
-    marginVertical: 5,
+    color: "#444",
+    textAlign: "left",
+    marginBottom: 12,
   },
   closeButton: {
-    marginTop: 20,
-    backgroundColor: "black",
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 5,
+    backgroundColor: "#48A6A7",
+    paddingVertical: 12,
+    paddingHorizontal: 30,
+    borderRadius: 10,
   },
   closeButtonText: {
-    color: "#fff",
+    color: "#ffffff",
     fontSize: 16,
     fontWeight: "bold",
   },

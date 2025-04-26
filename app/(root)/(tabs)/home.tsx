@@ -14,9 +14,10 @@ import {
 } from "react-native";
 import { ReactNativeModal } from "react-native-modal";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Emotion, emotionsMap, emotionStyles } from "@/app/(api)/emotionConfig";
+import { Emotion, emotionsMap, emotionStyles } from "@/(api)/emotionConfig";
 import { images } from "@/constants";
 import { getDatabase, ref, get, onValue } from "firebase/database";
+import { useCallback } from "react";
 
 const Home = () => {
   const { user } = useUser(); // Get user data from Clerk
@@ -28,7 +29,7 @@ const Home = () => {
   const [isNameModalVisible, setNameModalVisible] = useState(false); // Name input modal
   const [firstName, setFirstName] = useState(user?.firstName || "");
   const [lastName, setLastName] = useState(user?.lastName || "");
-  const [loading, setLoading] = useState(false); // Track loading state
+  const [loading] = useState(false); // Track loading state
   const [teacherId, setTeacherId] = useState<string | null>(null); // Store teacher ID dynamically
   const [parentId, setParentId] = useState<string | null>(null); // Store parent ID dynamically
   const [childName, setChildName] = useState<string | null>(null);
@@ -124,7 +125,9 @@ const Home = () => {
     const db = getDatabase();
     const emotionRef = ref(
       db,
-      `Users/Teachers/Class-A/Parents/${role === "teacher" ? selectedStudentId : userId}/emotions`,
+      `Users/Teachers/Class-A/Parents/${
+        role === "teacher" ? selectedStudentId : userId
+      }/emotions`,
     );
 
     const unsubscribe = onValue(emotionRef, (snapshot) => {
@@ -160,7 +163,7 @@ const Home = () => {
     });
 
     return () => unsubscribe(); // Cleanup when the component is unmounted
-  }, [userId]); // Re-run the effect when userId changes
+  }, [role, selectedStudentId, userId]); // Re-run the effect when userId changes
 
   // Automatically open the modal if the first or last name is not set
   useEffect(() => {
@@ -233,8 +236,7 @@ const Home = () => {
     return () => unsubscribe(); // Cleanup when the component is unmounted
   }, [userId]);
 
-  // Fetch teacher or parent IDs based on the database structure
-  const fetchIds = async () => {
+  const fetchIds = useCallback(async () => {
     try {
       const db = getDatabase();
       const classARef = ref(db, `Users/Teachers/Class-A`);
@@ -245,7 +247,7 @@ const Home = () => {
 
         if (role === "teacher") {
           setTeacherId("Class-A");
-          setParentId(null); // Teachers don't need a Parent ID
+          setParentId(null);
         } else if (role === "parent") {
           const parents = data.Parents || {};
           const parentEntry = Object.entries(parents).find(
@@ -253,7 +255,7 @@ const Home = () => {
           );
 
           if (parentEntry) {
-            setParentId(parentEntry[0]); // The key is the Parent ID
+            setParentId(parentEntry[0]);
             setTeacherId("Class-A");
           } else {
             console.warn("No matching parent ID found.");
@@ -270,20 +272,21 @@ const Home = () => {
     } catch (error) {
       console.error("Error fetching IDs:", error);
     }
-  };
+  }, [role, userId]);
 
   useEffect(() => {
     if (role && userId) {
       fetchIds();
     }
-  }, [role, userId]);
+  }, [fetchIds, role, userId]);
+
   useEffect(() => {
     console.log(`Role passed to Home component: ${role}`);
   }, [role]);
 
   useEffect(() => {
     fetchIds(); // Call fetch IDs on mount
-  }, [role, userId]);
+  }, [fetchIds, role, userId]);
 
   useEffect(() => {
     console.log(
@@ -302,7 +305,7 @@ const Home = () => {
   }, [emotion]);
 
   // Fetch emotion history from Firebase
-  const fetchEmotionHistory = async () => {
+  const fetchEmotionHistory = useCallback(async () => {
     const targetId = role === "teacher" ? selectedStudentId : userId;
 
     if (!targetId) {
@@ -347,13 +350,13 @@ const Home = () => {
       console.error("Error fetching emotion history:", error);
       Alert.alert("Error", "Failed to fetch emotion history.");
     }
-  };
+  }, [role, selectedStudentId, userId]);
 
   useEffect(() => {
     if (isModalVisible) {
       fetchEmotionHistory();
     }
-  }, [isModalVisible, selectedStudentId]);
+  }, [fetchEmotionHistory, isModalVisible, selectedStudentId]);
 
   return (
     <SafeAreaView
@@ -929,11 +932,16 @@ const Home = () => {
                         fontSize: 14,
                         color: emotionStyles[item.emotion]?.textColor || "#666",
                         opacity: 0.8,
+                        marginTop: 2,
                       }}
                     >
-                      {new Date(item.timestamp).toLocaleTimeString([], {
+                      {new Date(item.timestamp).toLocaleString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
                         hour: "2-digit",
                         minute: "2-digit",
+                        hour12: true,
                       })}
                     </Text>
                   </View>

@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Project EYES",
-    "slug": "projecteyes",
+    "slug": "project-eyes",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/splash.png",
@@ -13,14 +13,27 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.yume0616.projecteyes",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.yume0616.projecteyes"
+      "package": "com.yume0616.projecteyes",
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "ACCESS_FINE_LOCATION",
+        "ACCESS_COARSE_LOCATION"
+      ],
+      "icon": "./assets/images/adaptive-icon.png"
+      // ✅ Removed versionCode, EAS handles it
     },
     "web": {
       "bundler": "metro",
@@ -31,7 +44,7 @@
       [
         "expo-router",
         {
-          "origin": "https://uber.dev/"
+          "origin": "exp://192.168.254.102:8082"
         }
       ],
       "expo-font"
@@ -41,11 +54,12 @@
     },
     "extra": {
       "router": {
-        "origin": "https://uber.dev/"
+        "origin": "exp://192.168.254.102:8082"
       },
       "eas": {
-        "projectId": "a9b2c0e5-ac3f-466f-abae-c676c56a8ad2"
+        "projectId": "a819b789-03bc-4543-955b-1590eb7b8327"
       }
-    }
+    },
+    "owner": "yume0616"
   }
 }

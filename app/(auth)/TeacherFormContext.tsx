@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 import React, { createContext, useContext, useState, ReactNode } from "react";
 
 interface TeacherFormData {
@@ -11,11 +10,15 @@ interface TeacherFormContextType {
   setForm: React.Dispatch<React.SetStateAction<TeacherFormData>>;
 }
 
+interface TeacherFormProviderProps {
+  children: ReactNode;
+}
+
 const TeacherFormContext = createContext<TeacherFormContextType | undefined>(
   undefined,
 );
 
-export const TeacherFormProvider: React.FC<{ children: ReactNode }> = ({
+export const TeacherFormProvider: React.FC<TeacherFormProviderProps> = ({
   children,
 }) => {
   const [form, setForm] = useState<TeacherFormData>({

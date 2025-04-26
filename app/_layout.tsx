@@ -4,9 +4,9 @@ import { Stack } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
 import { useEffect } from "react";
 import "react-native-reanimated";
-import { LogBox } from "react-native";
+import { ActivityIndicator, LogBox, View } from "react-native";
 
-import { tokenCache } from "@/lib/auth";
+import { tokenCache } from "@lib/auth"; // ✅ if you configure tsconfig + metro
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -39,7 +39,11 @@ export default function RootLayout() {
   }, [loaded]);
 
   if (!loaded) {
-    return null;
+    return (
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" color="#006A71" />
+      </View>
+    );
   }
 
   return (

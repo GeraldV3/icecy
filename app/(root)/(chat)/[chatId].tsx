@@ -127,7 +127,7 @@ export default MessageScreen;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f1f5f9",
+    backgroundColor: "#F2EFE7", // Light Beige (same as ChatList)
   },
   chatContainer: {
     paddingVertical: 20,
@@ -146,15 +146,16 @@ const styles = StyleSheet.create({
   },
   sentBubble: {
     alignSelf: "flex-end",
-    backgroundColor: "#7c3aed",
+    backgroundColor: "#006A71", // Dark Teal
   },
   receivedBubble: {
     alignSelf: "flex-start",
-    backgroundColor: "#e2e8f0",
+    backgroundColor: "#9ACBD0", // Soft Blue
   },
   messageText: {
     fontSize: 16,
     fontWeight: "500",
+    color: "#FFFFFF", // White text for both sent and received bubbles
   },
   inputContainer: {
     flexDirection: "row",
@@ -163,27 +164,28 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderTopWidth: 1,
     borderColor: "#e2e8f0",
-    backgroundColor: "#fff",
+    backgroundColor: "#FFFFFF", // White
   },
   input: {
     flex: 1,
-    backgroundColor: "#f8fafc",
+    backgroundColor: "#F8FAFC",
     borderRadius: 20,
     paddingVertical: 10,
     paddingHorizontal: 16,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: "#e2e8f0",
+    borderColor: "#E2E8F0",
+    color: "#111827", // Dark input text
   },
   sendButton: {
-    backgroundColor: "#7c3aed",
+    backgroundColor: "#006A71", // Dark Teal
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 20,
     marginLeft: 8,
   },
   sendText: {
-    color: "#fff",
+    color: "#FFFFFF",
     fontWeight: "600",
     fontSize: 16,
   },

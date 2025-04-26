@@ -10,7 +10,6 @@ import {
   TextInput,
   Image,
   TouchableOpacity,
-  Switch,
   SafeAreaView,
   Alert,
   ScrollView,
@@ -20,8 +19,6 @@ import Modal from "react-native-modal"; // Correctly importing react-native-moda
 import { paragraphs } from "@/constants"; // Importing paragraphs
 
 const Settings = () => {
-  const [isPushEnabled, setIsPushEnabled] = useState(false);
-
   const [editProfileModalVisible, setEditProfileModalVisible] = useState(false);
   const [changePasswordModalVisible, setChangePasswordModalVisible] =
     useState(false);
@@ -115,13 +112,13 @@ const Settings = () => {
     }
   };
 
-  const toggleSwitch = () =>
-    setIsPushEnabled((previousState) => !previousState);
-
   return (
-    <SafeAreaView className="flex-1 bg-gray-100">
+    <SafeAreaView className="flex-1" style={{ backgroundColor: "#F2EFE7" }}>
       {/* Wrapper for Black Background */}
-      <View className="absolute w-full h-[185px] bg-black rounded-b-3xl" />
+      <View
+        className="absolute w-full h-[185px]"
+        style={{ backgroundColor: "#006A71" }}
+      />
 
       {/* Content */}
       <ScrollView className="flex-1">
@@ -146,7 +143,8 @@ const Settings = () => {
             </Text>
             <TouchableOpacity
               onPress={handleSignOut}
-              className="flex justify-center items-center px-4 py-2 rounded-lg bg-gray-200 shadow-md"
+              className="flex justify-center items-center px-4 py-2 rounded-lg"
+              style={{ backgroundColor: "#9ACBD0" }}
             >
               <Text className="text-gray-800 font-semibold">Logout</Text>
             </TouchableOpacity>
@@ -171,18 +169,6 @@ const Settings = () => {
               <Text className="text-base text-gray-800">Change password</Text>
               <Text className="text-gray-400">{">"}</Text>
             </TouchableOpacity>
-            <View className="flex-row justify-between items-center px-5 py-4">
-              <Text className="text-base text-gray-800">
-                Push notifications
-              </Text>
-              <Switch
-                trackColor={{ false: "#767577", true: "#E74C3C" }}
-                thumbColor={isPushEnabled ? "#FFF" : "#FFF"}
-                ios_backgroundColor="#3e3e3e"
-                onValueChange={toggleSwitch}
-                value={isPushEnabled}
-              />
-            </View>
           </View>
 
           {/* More Section */}
@@ -212,23 +198,45 @@ const Settings = () => {
           isVisible={aboutUsModalVisible}
           onBackdropPress={() => setAboutUsModalVisible(false)}
           onBackButtonPress={() => setAboutUsModalVisible(false)}
+          style={{ margin: 0, justifyContent: "center", alignItems: "center" }}
         >
-          <View className="bg-white rounded-lg p-6">
-            <ScrollView>
-              <Text className="text-lg font-bold mb-4">About Us</Text>
+          <SafeAreaView
+            style={{
+              backgroundColor: "#F2EFE7",
+              borderRadius: 16,
+              width: "90%",
+            }}
+          >
+            <View
+              style={{
+                backgroundColor: "#006A71",
+                paddingVertical: 10,
+                paddingHorizontal: 15,
+                borderTopLeftRadius: 16,
+                borderTopRightRadius: 16,
+              }}
+            >
+              <Text className="text-white text-2xl font-bold">About Us</Text>
+            </View>
+            <ScrollView style={{ padding: 15, maxHeight: 400 }}>
               <Text className="text-base text-gray-800">
                 {paragraphs.aboutUs}
               </Text>
             </ScrollView>
             <TouchableOpacity
               onPress={() => setAboutUsModalVisible(false)}
-              className="bg-black py-3 rounded-lg mt-4"
+              style={{
+                backgroundColor: "#48A6A7",
+                paddingVertical: 15,
+                borderRadius: 8,
+                margin: 15,
+              }}
             >
-              <Text className="text-center text-white font-semibold">
+              <Text className="text-white text-center text-lg font-semibold">
                 Close
               </Text>
             </TouchableOpacity>
-          </View>
+          </SafeAreaView>
         </Modal>
 
         {/* Privacy Policy Modal */}
@@ -236,23 +244,47 @@ const Settings = () => {
           isVisible={privacyPolicyModalVisible}
           onBackdropPress={() => setPrivacyPolicyModalVisible(false)}
           onBackButtonPress={() => setPrivacyPolicyModalVisible(false)}
+          style={{ margin: 0, justifyContent: "center", alignItems: "center" }}
         >
-          <View className="bg-white rounded-lg p-6">
-            <ScrollView>
-              <Text className="text-lg font-bold mb-4">Privacy Policy</Text>
+          <SafeAreaView
+            style={{
+              backgroundColor: "#F2EFE7",
+              borderRadius: 16,
+              width: "90%",
+            }}
+          >
+            <View
+              style={{
+                backgroundColor: "#006A71",
+                paddingVertical: 10,
+                paddingHorizontal: 15,
+                borderTopLeftRadius: 16,
+                borderTopRightRadius: 16,
+              }}
+            >
+              <Text className="text-white text-2xl font-bold">
+                Privacy Policy
+              </Text>
+            </View>
+            <ScrollView style={{ padding: 15, maxHeight: 400 }}>
               <Text className="text-base text-gray-800">
                 {paragraphs.privacyPolicy}
               </Text>
             </ScrollView>
             <TouchableOpacity
               onPress={() => setPrivacyPolicyModalVisible(false)}
-              className="bg-black py-3 rounded-lg mt-4"
+              style={{
+                backgroundColor: "#48A6A7",
+                paddingVertical: 15,
+                borderRadius: 8,
+                margin: 15,
+              }}
             >
-              <Text className="text-center text-white font-semibold">
+              <Text className="text-white text-center text-lg font-semibold">
                 Close
               </Text>
             </TouchableOpacity>
-          </View>
+          </SafeAreaView>
         </Modal>
       </ScrollView>
 
@@ -261,27 +293,57 @@ const Settings = () => {
         isVisible={editProfileModalVisible}
         onBackdropPress={() => setEditProfileModalVisible(false)}
         onBackButtonPress={() => setEditProfileModalVisible(false)}
+        style={{ margin: 0, justifyContent: "center", alignItems: "center" }} // Adjusting modal's style
       >
-        <SafeAreaView className="flex-1 bg-gray-100">
-          <View className="bg-black py-4 px-6">
+        <SafeAreaView
+          style={{ backgroundColor: "#F2EFE7", borderRadius: 16, width: "90%" }}
+        >
+          <View
+            style={{
+              backgroundColor: "#006A71",
+              paddingVertical: 10,
+              paddingHorizontal: 15,
+              borderTopLeftRadius: 16,
+              borderTopRightRadius: 16,
+            }}
+          >
             <Text className="text-white text-2xl font-bold">Edit Profile</Text>
           </View>
-          <View className="p-6 flex-1">
+          <View style={{ padding: 15 }}>
             <TextInput
               placeholder="First Name"
               value={firstName}
               onChangeText={setFirstName}
-              className="border border-gray-300 rounded-lg p-4 mb-4"
+              style={{
+                backgroundColor: "#F2EFE7",
+                borderWidth: 1,
+                borderColor: "#9ACBD0",
+                padding: 10,
+                borderRadius: 8,
+                marginBottom: 15,
+              }}
             />
             <TextInput
               placeholder="Last Name"
               value={lastName}
               onChangeText={setLastName}
-              className="border border-gray-300 rounded-lg p-4 mb-8"
+              style={{
+                backgroundColor: "#F2EFE7",
+                borderWidth: 1,
+                borderColor: "#9ACBD0",
+                padding: 10,
+                borderRadius: 8,
+                marginBottom: 25,
+              }}
             />
             <TouchableOpacity
               onPress={handleSaveProfile}
-              className="bg-black py-4 rounded-lg mb-4"
+              style={{
+                backgroundColor: "#48A6A7",
+                paddingVertical: 15,
+                borderRadius: 8,
+                marginBottom: 15,
+              }}
             >
               <Text className="text-white text-center text-lg font-semibold">
                 Save Changes
@@ -289,9 +351,13 @@ const Settings = () => {
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => setEditProfileModalVisible(false)}
-              className="bg-gray-300 py-4 rounded-lg"
+              style={{
+                backgroundColor: "#9ACBD0",
+                paddingVertical: 15,
+                borderRadius: 8,
+              }}
             >
-              <Text className="text-center text-lg font-semibold text-black">
+              <Text className="text-center text-lg font-semibold text-white">
                 Cancel
               </Text>
             </TouchableOpacity>
@@ -304,38 +370,75 @@ const Settings = () => {
         isVisible={changePasswordModalVisible}
         onBackdropPress={() => setChangePasswordModalVisible(false)}
         onBackButtonPress={() => setChangePasswordModalVisible(false)}
+        style={{ margin: 0, justifyContent: "center", alignItems: "center" }} // Adjusting modal's style
       >
-        <SafeAreaView className="flex-1 bg-gray-100">
-          <View className="bg-black py-4 px-6">
+        <SafeAreaView
+          style={{ backgroundColor: "#F2EFE7", borderRadius: 16, width: "90%" }}
+        >
+          <View
+            style={{
+              backgroundColor: "#006A71",
+              paddingVertical: 10,
+              paddingHorizontal: 15,
+              borderTopLeftRadius: 16,
+              borderTopRightRadius: 16,
+            }}
+          >
             <Text className="text-white text-2xl font-bold">
               Change Password
             </Text>
           </View>
-          <View className="p-6 flex-1">
+          <View style={{ padding: 15 }}>
             <TextInput
               placeholder="Current Password"
               secureTextEntry
               value={currentPassword}
               onChangeText={setCurrentPassword}
-              className="border border-gray-300 rounded-lg p-4 mb-4"
+              style={{
+                backgroundColor: "#F2EFE7",
+                borderWidth: 1,
+                borderColor: "#9ACBD0",
+                padding: 10,
+                borderRadius: 8,
+                marginBottom: 15,
+              }}
             />
             <TextInput
               placeholder="New Password"
               secureTextEntry
               value={newPassword}
               onChangeText={setNewPassword}
-              className="border border-gray-300 rounded-lg p-4 mb-4"
+              style={{
+                backgroundColor: "#F2EFE7",
+                borderWidth: 1,
+                borderColor: "#9ACBD0",
+                padding: 10,
+                borderRadius: 8,
+                marginBottom: 15,
+              }}
             />
             <TextInput
               placeholder="Confirm New Password"
               secureTextEntry
               value={confirmNewPassword}
               onChangeText={setConfirmNewPassword}
-              className="border border-gray-300 rounded-lg p-4 mb-8"
+              style={{
+                backgroundColor: "#F2EFE7",
+                borderWidth: 1,
+                borderColor: "#9ACBD0",
+                padding: 10,
+                borderRadius: 8,
+                marginBottom: 25,
+              }}
             />
             <TouchableOpacity
               onPress={handleNewPassword}
-              className="bg-black py-4 rounded-lg mb-4"
+              style={{
+                backgroundColor: "#48A6A7",
+                paddingVertical: 15,
+                borderRadius: 8,
+                marginBottom: 15,
+              }}
             >
               <Text className="text-white text-center text-lg font-semibold">
                 Save Changes
@@ -343,9 +446,13 @@ const Settings = () => {
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => setChangePasswordModalVisible(false)}
-              className="bg-gray-300 py-4 rounded-lg"
+              style={{
+                backgroundColor: "#9ACBD0",
+                paddingVertical: 15,
+                borderRadius: 8,
+              }}
             >
-              <Text className="text-center text-lg font-semibold text-black">
+              <Text className="text-center text-lg font-semibold text-white">
                 Cancel
               </Text>
             </TouchableOpacity>

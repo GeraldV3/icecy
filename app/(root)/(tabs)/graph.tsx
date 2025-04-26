@@ -15,7 +15,7 @@ import { useUser } from "@clerk/clerk-expo";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Calendar } from "react-native-calendars";
 import dayjs from "dayjs";
-import { Emotion, emotionStyles } from "@/app/(api)/emotionConfig";
+import { Emotion, emotionStyles } from "@/(api)/emotionConfig";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -47,7 +47,7 @@ const GraphScreen = () => {
     };
   }>({});
   const [markedDates, setMarkedDates] = useState<MarkedDates>({});
-  const [searchQuery, setSearchQuery] = useState(""); // Search query state
+  const [searchQuery, setSearchQuery] = useState("");
   const [filteredEmotionHistory, setFilteredEmotionHistory] =
     useState(emotionHistory);
 
@@ -99,7 +99,7 @@ const GraphScreen = () => {
         };
 
         setEmotionHistory(newHistory);
-        setFilteredEmotionHistory(newHistory); // ✅ ADD THIS LINE
+        setFilteredEmotionHistory(newHistory);
 
         const markedDates = records.reduce((acc, { timestamp }) => {
           const formattedDate = dayjs(timestamp).format("YYYY-MM-DD");
@@ -140,7 +140,7 @@ const GraphScreen = () => {
         setEmotionHistory(studentData);
 
         const allMarkedDates: MarkedDates = {};
-        Object.entries(studentData).forEach(([parentId, { records }]) => {
+        Object.entries(studentData).forEach(([_, { records }]) => {
           records.forEach(({ timestamp }) => {
             const formattedDate = dayjs(timestamp).format("YYYY-MM-DD");
             allMarkedDates[formattedDate] = {
@@ -189,15 +189,14 @@ const GraphScreen = () => {
     return { data, total, counts };
   };
 
-  // Search functionality to filter students by name
   useEffect(() => {
     if (role === "teacher") {
       if (searchQuery.trim() === "") {
-        setFilteredEmotionHistory(emotionHistory); // If no search query, show all students
+        setFilteredEmotionHistory(emotionHistory);
       } else {
         const filtered = Object.entries(emotionHistory).filter(
           ([_, { childName }]) =>
-            childName.toLowerCase().includes(searchQuery.toLowerCase()), // Filter by child name
+            childName.toLowerCase().includes(searchQuery.toLowerCase()),
         );
         const newFilteredHistory = Object.fromEntries(filtered);
         setFilteredEmotionHistory(newFilteredHistory);
@@ -212,22 +211,20 @@ const GraphScreen = () => {
           {role === "teacher" ? "Class Emotion Overview" : "Emotion Breakdown"}
         </Text>
 
-        {/* Teacher search bar */}
         {role === "teacher" && (
           <View style={styles.searchContainer}>
             <TextInput
               style={styles.searchInput}
               placeholder="Search student by name..."
               value={searchQuery}
-              onChangeText={setSearchQuery} // Update search query on text change
+              onChangeText={setSearchQuery}
             />
           </View>
         )}
 
-        {/* Button to open the calendar modal */}
         <View style={styles.datePickerBox}>
           <Text style={styles.dateLabel}>
-            Selected Date: {selectedDate.format("MMMM YYYY")}
+            Selected Date: {selectedDate.format("MMMM D, YYYY")}
           </Text>
           <TouchableOpacity
             style={styles.openCalendarButton}
@@ -237,7 +234,6 @@ const GraphScreen = () => {
           </TouchableOpacity>
         </View>
 
-        {/* Modal for calendar */}
         <Modal
           visible={isModalVisible}
           animationType="slide"
@@ -259,7 +255,6 @@ const GraphScreen = () => {
           </View>
         </Modal>
 
-        {/* Emotion Graphs for filtered emotion history */}
         {Object.entries(filteredEmotionHistory).map(
           ([parentId, { childName, records }]) => {
             const filtered = applyFilter(records);
@@ -345,7 +340,7 @@ const GraphScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff",
+    backgroundColor: "#F2EFE7",
     paddingHorizontal: 16,
   },
   title: {

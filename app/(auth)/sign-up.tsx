@@ -2,21 +2,20 @@ import { useSignUp } from "@clerk/clerk-expo";
 import { useRouter, useLocalSearchParams, Link } from "expo-router";
 import { getDatabase, ref, set } from "firebase/database";
 import { useState, useEffect } from "react";
-import { Alert, Image, ScrollView, Text, View } from "react-native";
+import { ScrollView, Text, View, TouchableOpacity, Image } from "react-native";
 import { ReactNativeModal } from "react-native-modal";
 
-import { useForm } from "@/app/(auth)/FormContext";
-import CustomButton from "@/components/CustomButton";
-import InputField from "@/components/InputField";
+import { useForm } from "@/(auth)/FormContext";
+import CustomButton from "@components/CustomButton";
+import InputField from "@components/InputField";
 import { icons, images } from "@/constants";
 
-// Added types for form and verification states
 interface FormState {
   childName: string;
   email: string;
   password: string;
   profilePicture: string;
-  faceImageBase64?: string; // optional property for the Base64 string
+  faceImageBase64?: string;
 }
 
 interface VerificationState {
@@ -40,8 +39,17 @@ const SignUp = () => {
     code: "",
   });
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-
   const [passwordVisible, setPasswordVisible] = useState(false);
+  const [errorModalVisible, setErrorModalVisible] = useState(false);
+  const [errorTitle, setErrorTitle] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [rescanModalVisible, setRescanModalVisible] = useState(false); // 👈 added
+
+  const showErrorModal = (title: string, message: string) => {
+    setErrorTitle(title);
+    setErrorMessage(message);
+    setErrorModalVisible(true);
+  };
 
   useEffect(() => {
     const imageUri = searchParams?.imageUri as string | undefined;
@@ -50,66 +58,78 @@ const SignUp = () => {
     if (imageUri) {
       setForm((prev) => ({
         ...prev,
-        profilePicture: imageUri, // Update profile picture with the latest URI
+        profilePicture: imageUri,
         faceImageBase64: faceImageBase64 || prev.faceImageBase64,
       }));
     }
   }, [searchParams?.imageUri, searchParams?.faceImageBase64, setForm]);
 
   const handleSignUp = async () => {
-    // Check if Clerk is loaded
     if (!isLoaded || !signUp) {
-      Alert.alert("Error", "Clerk is not ready. Please try again later.");
-      return;
+      return showErrorModal(
+        "Error",
+        "Clerk is not ready. Please try again later.",
+      );
     }
 
-    // Clear previous image data when initiating a new scan
+    if (!form.childName && !form.email && !form.password) {
+      return showErrorModal(
+        "Missing Information",
+        "Please complete all fields and scan your child's face.",
+      );
+    }
+    if (!form.childName) {
+      return showErrorModal(
+        "Missing Child Name",
+        "Please enter your child's name.",
+      );
+    }
+    if (!form.email) {
+      return showErrorModal(
+        "Missing Email",
+        "Please enter your email address.",
+      );
+    }
+    if (!form.password) {
+      return showErrorModal("Missing Password", "Please enter your password.");
+    }
     if (!form.profilePicture) {
       router.push("/(auth)/face-recognition");
       return;
     }
 
-    // Check for empty fields, including the profilePicture
-    if (
-      !form.childName ||
-      !form.email ||
-      !form.password ||
-      !form.profilePicture
-    ) {
-      return Alert.alert(
-        "Incomplete Information",
-        "All fields, including the child face scan, must be completed.",
-      );
-    }
-
     try {
-      // Attempt to create a new user
       await signUp.create({
         emailAddress: form.email,
         password: form.password,
       });
 
-      // Prepare email verification
       await signUp.prepareEmailAddressVerification({ strategy: "email_code" });
-      setVerification((prev: VerificationState) => ({
+      setVerification((prev) => ({
         ...prev,
         state: "pending",
       }));
     } catch (error: any) {
       console.error("Sign-up error:", error);
 
-      // Handle errors
-      const errorMessage =
-        error.errors?.[0]?.longMessage || "An unknown error occurred.";
-      Alert.alert("Error", errorMessage);
+      const errorMessage = error.errors?.[0]?.longMessage || "";
+      if (errorMessage.includes("identifier is invalid")) {
+        showErrorModal("Invalid Email", "Please enter a valid email address.");
+      } else {
+        showErrorModal(
+          "Sign Up Error",
+          errorMessage || "An unknown error occurred.",
+        );
+      }
     }
   };
 
   const onPressVerify = async () => {
-    // Check if Clerk is loaded
     if (!isLoaded || !signUp) {
-      Alert.alert("Error", "Clerk is not ready. Please try again later.");
-      return;
+      return showErrorModal(
+        "Error",
+        "Clerk is not ready. Please try again later.",
+      );
     }
 
     try {
@@ -118,13 +138,10 @@ const SignUp = () => {
       });
 
       if (completeSignUp.status === "complete") {
-        const db = getDatabase(); // Get the database instance
+        const db = getDatabase();
         const parentId = completeSignUp.createdUserId;
-
-        // Specify the teacher ID (You can pass it dynamically as required)
         const teacherId = "Class-A";
 
-        // Prepare the payload with face recognition data
         const payload = {
           childName: form.childName,
           email: form.email,
@@ -138,16 +155,14 @@ const SignUp = () => {
 
         console.log("Saving Parent to Firebase with payload:", payload);
 
-        // Save parent data under a specific teacher
         await set(
           ref(db, `Users/Teachers/${teacherId}/Parents/${parentId}`),
           payload,
         );
-
         await setActive({ session: completeSignUp.createdSessionId });
         setShowSuccessModal(true);
       } else {
-        setVerification((prev: VerificationState) => ({
+        setVerification((prev) => ({
           ...prev,
           error: "Verification failed. Please try again.",
           state: "failed",
@@ -155,7 +170,7 @@ const SignUp = () => {
       }
     } catch (err) {
       console.error("Verification error:", err);
-      setVerification((prev: VerificationState) => ({
+      setVerification((prev) => ({
         ...prev,
         error: "Verification failed. Please try again.",
         state: "failed",
@@ -164,12 +179,12 @@ const SignUp = () => {
   };
 
   return (
-    <ScrollView className="flex-1 bg-white">
-      <View className="flex-1 bg-white">
-        <Text className="text-3xl text-black font-bold text-center mt-10">
-          Let`s get started!
+    <ScrollView className="flex-1 bg-[#F2EFE7]">
+      <View className="flex-1 bg-[#F2EFE7]">
+        <Text className="text-3xl text-[#006A71] font-bold text-center mt-10">
+          Let's get started!
         </Text>
-        <Text className="text-base text-general-200 text-center">
+        <Text className="text-base text-[#9ACBD0] text-center">
           Create an account to get started.
         </Text>
 
@@ -180,8 +195,8 @@ const SignUp = () => {
             icon={icons.email}
             textContentType="emailAddress"
             value={form.email}
-            onChangeText={(value) =>
-              setForm((prev: FormState) => ({ ...prev, email: value }))
+            onChangeText={(value: string) =>
+              setForm((prev) => ({ ...prev, email: value }))
             }
           />
           <InputField
@@ -192,7 +207,9 @@ const SignUp = () => {
             secureTextEntry={!passwordVisible}
             textContentType="password"
             value={form.password}
-            onChangeText={(value) => setForm({ ...form, password: value })}
+            onChangeText={(value: string) =>
+              setForm((prev) => ({ ...prev, password: value }))
+            }
             onRightIconPress={() => setPasswordVisible(!passwordVisible)}
             rightIconStyle={`opacity-${passwordVisible ? "100" : "50"}`}
           />
@@ -201,96 +218,165 @@ const SignUp = () => {
             placeholder="Enter child name"
             icon={icons.person}
             value={form.childName}
-            onChangeText={(value) =>
-              setForm((prev: FormState) => ({ ...prev, childName: value }))
+            onChangeText={(value: string) =>
+              setForm((prev) => ({ ...prev, childName: value }))
             }
           />
+
+          {/* Updated Scan Button */}
           <CustomButton
             title={
               form.profilePicture ? "Face Scan Completed" : "Scan Child's Face"
             }
             onPress={() => {
               if (form.profilePicture) {
-                Alert.alert(
-                  "Confirm Rescan",
-                  "You've already scanned the face. Are you sure you want to scan again?",
-                  [
-                    { text: "Cancel", style: "cancel" },
-                    {
-                      text: "Scan Again",
-                      onPress: () => {
-                        setForm((prev) => ({ ...prev, profilePicture: "" }));
-                        router.push("/(auth)/face-recognition");
-                      },
-                    },
-                  ],
-                );
+                setRescanModalVisible(true);
               } else {
-                setForm((prev) => ({ ...prev, profilePicture: "" }));
                 router.push("/(auth)/face-recognition");
               }
             }}
-            className={`mt-6 ${!form.profilePicture ? "bg-black-500" : "bg-success-500"}`}
+            className={`mt-6 ${
+              !form.profilePicture ? "bg-[#48A6A7]" : "bg-[#006A71]"
+            }`}
           />
 
           <CustomButton
             title="Sign Up"
             onPress={handleSignUp}
-            className="mt-6"
+            className="mt-6 bg-[#006A71]"
           />
+
           <Link
             href="/sign-in"
-            className="text-lg text-center text-general-200 mt-10"
+            className="text-lg text-center text-[#9ACBD0] mt-10"
           >
             Already have an account?{" "}
-            <Text className="text-primary-500">Sign In</Text>
+            <Text className="text-[#006A71]">Sign In</Text>
           </Link>
         </View>
+
+        {/* Verification Modal */}
         <ReactNativeModal isVisible={verification.state === "pending"}>
-          <View className="bg-white px-7 py-9 rounded-2xl min-h-[300px]">
-            <Text className="font-bold text-2xl mb-2">Verification</Text>
-            <Text className="mb-5">
+          <View className="bg-white px-7 py-9 rounded-2xl min-h-[300px] relative">
+            <TouchableOpacity
+              onPress={() =>
+                setVerification({ state: "default", error: "", code: "" })
+              }
+              style={{ position: "absolute", top: 15, right: 15 }}
+            >
+              <Text
+                style={{ fontSize: 20, color: "#006A71", fontWeight: "bold" }}
+              >
+                X
+              </Text>
+            </TouchableOpacity>
+
+            <Text className="font-bold text-2xl mb-2 text-[#006A71]">
+              Verification
+            </Text>
+            <Text className="mb-5 text-[#9ACBD0]">
               We've sent a verification code to {form.email}.
             </Text>
+
             <InputField
               label="Verification Code"
               placeholder="Enter code"
               icon={icons.lock}
               keyboardType="numeric"
               value={verification.code}
-              onChangeText={(value) =>
-                setVerification((prev: VerificationState) => ({
-                  ...prev,
-                  code: value,
-                }))
+              onChangeText={(value: string) =>
+                setVerification((prev) => ({ ...prev, code: value }))
               }
             />
+
             {verification.error && (
               <Text className="text-red-500 text-sm mt-1">
                 {verification.error}
               </Text>
             )}
+
             <CustomButton
               title="Verify Email"
               onPress={onPressVerify}
-              className="mt-5 bg-success-500"
+              className="mt-5 bg-[#48A6A7]"
             />
           </View>
         </ReactNativeModal>
+
+        {/* Success Modal */}
         <ReactNativeModal isVisible={showSuccessModal}>
           <View className="bg-white px-7 py-9 rounded-2xl min-h-[300px]">
             <Image
               source={images.check}
               style={{ width: 110, height: 110, alignSelf: "center" }}
             />
-            <Text className="text-3xl font-bold text-center">Verified</Text>
-            <Text className="text-base text-gray-400 text-center mt-2">
+            <Text className="text-3xl font-bold text-center mt-4 text-[#006A71]">
+              Verified
+            </Text>
+            <Text className="text-base text-[#9ACBD0] text-center mt-2">
               You have successfully verified your account.
             </Text>
             <CustomButton
               title="Continue"
-              className="mt-5"
               onPress={() => router.push("/(auth)/success")}
+              className="mt-5 bg-[#48A6A7]"
+            />
+          </View>
+        </ReactNativeModal>
+
+        {/* Error Modal */}
+        <ReactNativeModal
+          isVisible={errorModalVisible}
+          onBackdropPress={() => setErrorModalVisible(false)}
+          backdropOpacity={0.5}
+        >
+          <View className="bg-white px-6 py-8 rounded-lg w-full max-w-[90%]">
+            <Text className="text-2xl font-bold text-center mb-4 text-[#006A71]">
+              {errorTitle}
+            </Text>
+            <Text className="text-base text-center text-gray-700 mb-6">
+              {errorMessage}
+            </Text>
+            <CustomButton
+              title="Close"
+              onPress={() => setErrorModalVisible(false)}
+              className="bg-[#9ACBD0]"
+            />
+          </View>
+        </ReactNativeModal>
+
+        {/* Rescan Modal */}
+        <ReactNativeModal
+          isVisible={rescanModalVisible}
+          onBackdropPress={() => setRescanModalVisible(false)}
+          backdropOpacity={0.5}
+        >
+          <View className="bg-white px-6 py-8 rounded-2xl w-[85%] self-center">
+            <Text className="text-2xl font-bold text-center mb-4 text-[#006A71]">
+              Face Scan Found
+            </Text>
+            <Text className="text-base text-center text-gray-600 mb-8">
+              You've already scanned. What do you want to do?
+            </Text>
+
+            <CustomButton
+              title="Continue with Existing"
+              onPress={() => setRescanModalVisible(false)}
+              className="bg-[#48A6A7] mb-4"
+            />
+
+            <CustomButton
+              title="Scan Again"
+              onPress={() => {
+                setForm((prev) => ({
+                  ...prev,
+                  profilePicture: "",
+                  faceImageBase64: undefined,
+                }));
+                setRescanModalVisible(false);
+                router.push("/(auth)/face-recognition");
+              }}
+              className="bg-[#006A71]"
             />
           </View>
         </ReactNativeModal>

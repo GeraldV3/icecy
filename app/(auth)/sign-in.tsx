@@ -2,7 +2,6 @@ import { useSignIn } from "@clerk/clerk-expo";
 import { useRouter } from "expo-router";
 import React, { useCallback, useState } from "react";
 import {
-  Alert,
   ScrollView,
   Text,
   View,
@@ -12,8 +11,8 @@ import {
 } from "react-native";
 import { ReactNativeModal } from "react-native-modal";
 
-import CustomButton from "@/components/CustomButton";
-import InputField from "@/components/InputField";
+import CustomButton from "@components/CustomButton";
+import InputField from "@components/InputField";
 import { icons } from "@/constants";
 
 const SignIn = () => {
@@ -34,12 +33,39 @@ const SignIn = () => {
   const [resetStage, setResetStage] = useState<"sendEmail" | "resetPassword">(
     "sendEmail",
   );
-
   const [passwordVisible, setPasswordVisible] = useState(false);
 
+  const [errorModalVisible, setErrorModalVisible] = useState(false);
+  const [errorTitle, setErrorTitle] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+
+  const showErrorModal = (title: string, message: string) => {
+    setErrorTitle(title);
+    setErrorMessage(message);
+    setErrorModalVisible(true);
+  };
+
   const onSignInPress = useCallback(async () => {
+    if (!form.email && !form.password) {
+      return showErrorModal(
+        "Missing Information",
+        "Please enter your email and password.",
+      );
+    }
+
+    if (!form.email) {
+      return showErrorModal(
+        "Missing Email",
+        "Please enter your email address.",
+      );
+    }
+
+    if (!form.password) {
+      return showErrorModal("Missing Password", "Please enter your password.");
+    }
+
     if (!isLoaded || !signIn) {
-      return Alert.alert("Error", "Sign-in functionality is not available.");
+      return showErrorModal("Error", "Sign-in functionality is not available.");
     }
 
     try {
@@ -52,28 +78,34 @@ const SignIn = () => {
         await setActive?.({ session: signInAttempt.createdSessionId });
         router.replace("/(auth)/success");
       } else {
-        Alert.alert("Error", "Log in failed. Please try again.");
+        showErrorModal("Sign In Failed", "Log in failed. Please try again.");
       }
     } catch (err: any) {
       console.error("Sign-in error:", err);
-      Alert.alert(
-        "Error",
-        err.errors?.[0]?.longMessage ||
-          "Invalid credentials. Please try again.",
-      );
+
+      const errorMessage = err.errors?.[0]?.longMessage || "";
+
+      if (errorMessage.includes("identifier is invalid")) {
+        showErrorModal("Invalid Email", "Please enter a valid email address.");
+      } else {
+        showErrorModal(
+          "Sign In Error",
+          errorMessage || "Invalid credentials. Please try again.",
+        );
+      }
     }
   }, [isLoaded, form, setActive, signIn, router]);
 
   const onForgotPasswordPress = useCallback(async () => {
     if (!resetEmail) {
-      return Alert.alert(
-        "Error",
+      return showErrorModal(
+        "Missing Email",
         "Please enter your email to reset your password.",
       );
     }
 
     if (!signIn) {
-      return Alert.alert(
+      return showErrorModal(
         "Error",
         "Password reset functionality is not available.",
       );
@@ -85,25 +117,31 @@ const SignIn = () => {
         strategy: "reset_password_email_code",
       });
 
-      Alert.alert(
+      setResetStage("resetPassword"); // Move to the reset password stage
+      showErrorModal(
         "Reset Email Sent",
         "A password reset code has been sent to your email.",
       );
-      setResetStage("resetPassword"); // Move to the reset password stage
     } catch (err: any) {
       console.error("Error sending reset email:", err);
-      Alert.alert(
-        "Error",
-        err.errors?.[0]?.longMessage ||
-          "Unable to send reset link. Please try again.",
-      );
+
+      const errorMessage = err.errors?.[0]?.longMessage || "";
+
+      if (errorMessage.includes("identifier is invalid")) {
+        showErrorModal("Invalid Email", "Please enter a valid email address.");
+      } else {
+        showErrorModal(
+          "Reset Error",
+          errorMessage || "Unable to send reset link. Please try again.",
+        );
+      }
     }
   }, [resetEmail, signIn]);
 
   const onResetPasswordPress = useCallback(async () => {
     if (!resetCode || !newPassword) {
-      return Alert.alert(
-        "Error",
+      return showErrorModal(
+        "Missing Information",
         "Please enter the reset code and your new password.",
       );
     }
@@ -116,21 +154,22 @@ const SignIn = () => {
       });
 
       if (result?.status === "complete") {
-        Alert.alert(
-          "Success",
-          "Your password has been reset successfully. You are now signed in.",
-        );
         setResetModalVisible(false); // Close modal on success
+        showErrorModal(
+          "Success",
+          "Your password has been reset successfully. Please login again.",
+        );
       } else {
-        Alert.alert(
-          "Error",
+        showErrorModal(
+          "Reset Failed",
           "Password reset failed. Please check the code and try again.",
         );
       }
     } catch (err: any) {
       console.error("Error resetting password:", err);
-      Alert.alert(
-        "Error",
+
+      showErrorModal(
+        "Reset Error",
         err.errors?.[0]?.longMessage ||
           "Something went wrong. Please try again.",
       );
@@ -138,13 +177,13 @@ const SignIn = () => {
   }, [resetCode, newPassword, signIn]);
 
   return (
-    <ScrollView className="flex-1 bg-white">
-      <View className="flex-1 bg-white">
-        <Text className="text-3xl text-black font-JakartaBold mt-[60px] text-center">
+    <ScrollView className="flex-1 bg-[#F2EFE7]">
+      <View className="flex-1 bg-[#F2EFE7]">
+        <Text className="text-3xl text-[#006A71] font-JakartaBold mt-[60px] text-center">
           Welcome Back
         </Text>
 
-        <Text className="text-lg text-gray-500 mt-1 text-center">
+        <Text className="text-lg text-[#9ACBD0] mt-1 text-center">
           Login to your account
         </Text>
 
@@ -155,7 +194,7 @@ const SignIn = () => {
             icon={icons.email}
             textContentType="emailAddress"
             value={form.email}
-            onChangeText={(value) => setForm({ ...form, email: value })}
+            onChangeText={(value: string) => setForm({ ...form, email: value })}
           />
 
           <InputField
@@ -166,7 +205,9 @@ const SignIn = () => {
             secureTextEntry={!passwordVisible}
             textContentType="password"
             value={form.password}
-            onChangeText={(value) => setForm({ ...form, password: value })}
+            onChangeText={(value: string) =>
+              setForm({ ...form, password: value })
+            }
             onRightIconPress={() => setPasswordVisible(!passwordVisible)}
             rightIconStyle={`opacity-${passwordVisible ? "100" : "50"}`}
           />
@@ -176,7 +217,7 @@ const SignIn = () => {
               setResetModalVisible(true);
               setResetStage("sendEmail");
             }}
-            className="text-gray-500 text-right mr-2 mt-2"
+            className="text-[#9ACBD0] text-right mr-2 mt-2"
           >
             Forgot Password?
           </Text>
@@ -184,16 +225,16 @@ const SignIn = () => {
           <CustomButton
             title="Sign In"
             onPress={onSignInPress}
-            className="mt-[100px]"
+            className="mt-[100px] bg-[#48A6A7]"
           />
 
           <TouchableOpacity
-            onPress={() => setRoleModalVisible(true)} // Show modal on Sign-Up click
-            className="text-lg text-center text-general-200 mt-[35px]"
+            onPress={() => setRoleModalVisible(true)}
+            className="text-lg text-center text-[#48A6A7] mt-[35px]"
           >
-            <Text className="text-lg text-center text-general-200">
+            <Text className="text-lg text-center text-[#48A6A7]">
               Don't have an account?{" "}
-              <Text className="text-primary-500">Sign Up</Text>
+              <Text className="text-[#006A71]">Sign Up</Text>
             </Text>
           </TouchableOpacity>
         </View>
@@ -207,12 +248,12 @@ const SignIn = () => {
         className="justify-center items-center"
       >
         <View className="bg-white px-6 py-8 rounded-lg w-full max-w-[90%]">
-          {resetStage === "sendEmail" && (
-            <View>
+          {resetStage === "sendEmail" ? (
+            <>
               <Text className="text-2xl font-bold text-center mb-4">
                 Forgot Password
               </Text>
-              <Text className="text-base text-gray-500 text-center mb-6">
+              <Text className="text-base text-[#006A71] text-center mb-6">
                 Enter your email address, and we'll send you a reset code.
               </Text>
 
@@ -220,7 +261,7 @@ const SignIn = () => {
                 placeholder="Enter your email"
                 value={resetEmail}
                 onChangeText={setResetEmail}
-                className="border border-gray-300 rounded-lg px-4 py-3 mb-4 text-black"
+                className="border border-[#9ACBD0] rounded-lg px-4 py-3 mb-4 text-[#006A71]"
                 placeholderTextColor="#A0A0A0"
                 keyboardType="email-address"
               />
@@ -228,17 +269,15 @@ const SignIn = () => {
               <CustomButton
                 title="Send Reset Code"
                 onPress={onForgotPasswordPress}
-                className="mt-4 bg-black-500"
+                className="mt-4 bg-[#006A71]"
               />
-            </View>
-          )}
-
-          {resetStage === "resetPassword" && (
-            <View>
+            </>
+          ) : (
+            <>
               <Text className="text-2xl font-bold text-center mb-4">
                 Reset Password
               </Text>
-              <Text className="text-base text-gray-500 text-center mb-6">
+              <Text className="text-base text-[#006A71] text-center mb-6">
                 Enter the reset code sent to your email and your new password.
               </Text>
 
@@ -246,7 +285,7 @@ const SignIn = () => {
                 placeholder="Enter the reset code"
                 value={resetCode}
                 onChangeText={setResetCode}
-                className="border border-gray-300 rounded-lg px-4 py-3 mb-4 text-black"
+                className="border border-[#9ACBD0] rounded-lg px-4 py-3 mb-4 text-[#006A71]"
                 placeholderTextColor="#A0A0A0"
               />
 
@@ -254,7 +293,7 @@ const SignIn = () => {
                 placeholder="Enter your new password"
                 value={newPassword}
                 onChangeText={setNewPassword}
-                className="border border-gray-300 rounded-lg px-4 py-3 mb-4 text-black"
+                className="border border-[#9ACBD0] rounded-lg px-4 py-3 mb-4 text-[#006A71]"
                 placeholderTextColor="#A0A0A0"
                 secureTextEntry
               />
@@ -262,15 +301,15 @@ const SignIn = () => {
               <CustomButton
                 title="Reset Password"
                 onPress={onResetPasswordPress}
-                className="mt-4 bg-black-500"
+                className="mt-4 bg-[#006A71]"
               />
-            </View>
+            </>
           )}
 
           <CustomButton
             title="Cancel"
             onPress={() => setResetModalVisible(false)}
-            className="bg-gray-300 mt-4"
+            className="bg-[#9ACBD0] mt-4"
           />
         </View>
       </ReactNativeModal>
@@ -284,36 +323,74 @@ const SignIn = () => {
       >
         <View className="flex-1 justify-center items-center bg-black bg-opacity-50">
           <View className="w-4/5 bg-white rounded-lg p-6">
-            <Text className="text-lg font-bold text-gray-800 text-center mb-4">
+            <Text className="text-lg font-bold text-[#006A71] text-center mb-4">
               Select Your Role
             </Text>
             <CustomButton
               title="Teacher"
               onPress={() => {
-                setRoleModalVisible(false); // Hide modal
-                router.replace("/(auth)/sign-up-teacher"); // Navigate to Teacher Sign-Up
+                try {
+                  setRoleModalVisible(false);
+                  router.replace("/(auth)/sign-up-teacher");
+                } catch (error) {
+                  console.error("Navigation error (Teacher):", error);
+                  showErrorModal(
+                    "Navigation Error",
+                    "Unable to navigate to Teacher Sign Up.",
+                  );
+                }
               }}
-              className="bg-black-800 w-full py-3 mb-4 rounded-lg"
+              className="bg-[#48A6A7] w-full py-3 mb-4 rounded-lg"
             />
             <CustomButton
               title="Parent"
               onPress={() => {
-                setRoleModalVisible(false); // Hide modal
-                router.replace("/(auth)/sign-up"); // Navigate to Parent Sign-Up
+                try {
+                  setRoleModalVisible(false);
+                  router.replace("/(auth)/sign-up");
+                } catch (error) {
+                  console.error("Navigation error (Parent):", error);
+                  showErrorModal(
+                    "Navigation Error",
+                    "Unable to navigate to Parent Sign Up.",
+                  );
+                }
               }}
-              className="bg-gray-500 w-full py-3 rounded-lg"
+              className="bg-[#48A6A7] w-full py-3 rounded-lg"
             />
             <TouchableOpacity
               onPress={() => setRoleModalVisible(false)}
               className="mt-4"
             >
-              <Text className="text-center text-gray-500 underline">
+              <Text className="text-center text-[#9ACBD0] underline">
                 Cancel
               </Text>
             </TouchableOpacity>
           </View>
         </View>
       </Modal>
+
+      {/* Error Modal */}
+      <ReactNativeModal
+        isVisible={errorModalVisible}
+        onBackdropPress={() => setErrorModalVisible(false)}
+        backdropOpacity={0.5}
+        className="justify-center items-center"
+      >
+        <View className="bg-white px-6 py-8 rounded-lg w-full max-w-[90%]">
+          <Text className="text-2xl font-bold text-center mb-4 text-[#006A71]">
+            {errorTitle}
+          </Text>
+          <Text className="text-base text-center text-gray-700 mb-6">
+            {errorMessage}
+          </Text>
+          <CustomButton
+            title="Close"
+            onPress={() => setErrorModalVisible(false)}
+            className="bg-[#9ACBD0]"
+          />
+        </View>
+      </ReactNativeModal>
     </ScrollView>
   );
 };

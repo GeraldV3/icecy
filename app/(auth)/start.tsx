@@ -7,49 +7,52 @@ import {
   Easing,
   Modal,
   TouchableOpacity,
-} from "react-native"; // Import Modal and TouchableOpacity
+  Image,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import CustomButton from "@/components/CustomButton";
+import CustomButton from "@components/CustomButton";
 import { images } from "@/constants";
 
 const Start: React.FC = () => {
   const router = useRouter();
-  const [isModalVisible, setIsModalVisible] = useState(false); // State to control modal visibility
+  const [isModalVisible, setIsModalVisible] = useState(false);
 
   // Animated value for floating effect
   const floatAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    // Smooth up-and-down animation with easing
     const animate = () => {
       Animated.sequence([
         Animated.timing(floatAnim, {
-          toValue: 10, // Move down
+          toValue: 10,
           duration: 2000,
-          easing: Easing.inOut(Easing.sin), // Correct usage of Easing
+          easing: Easing.inOut(Easing.sin),
           useNativeDriver: true,
         }),
         Animated.timing(floatAnim, {
-          toValue: -10, // Move up
+          toValue: -10,
           duration: 2000,
-          easing: Easing.inOut(Easing.sin), // Correct usage of Easing
+          easing: Easing.inOut(Easing.sin),
           useNativeDriver: true,
         }),
-      ]).start(() => animate()); // Loop animation
+      ]).start(() => animate());
     };
 
     animate();
   }, [floatAnim]);
 
   return (
-    <SafeAreaView className="flex-1 items-center justify-center bg-white">
+    <SafeAreaView
+      className="flex-1 items-center justify-center"
+      style={{ backgroundColor: "#F2EFE7" }}
+    >
       {/* Header Section */}
       <View className="mt-8">
-        <Text className="text-2xl font-bold text-gray-800 text-center">
+        <Text className="text-2xl font-bold text-[#006A71] text-center">
           Welcome to Project EYES!
         </Text>
-        <Text className="text-base text-gray-500 mt-2 text-center">
+        <Text className="text-base text-[#9ACBD0] mt-2 text-center">
           Click a button below to get started.
         </Text>
       </View>
@@ -57,11 +60,9 @@ const Start: React.FC = () => {
       {/* Image Section with Floating Animation */}
       <Animated.View
         className="items-center justify-center mt-10"
-        style={{
-          transform: [{ translateY: floatAnim }],
-        }}
+        style={{ transform: [{ translateY: floatAnim }] }}
       >
-        <Animated.Image
+        <Image
           source={images.startBg}
           className="w-50 h-110 mt-15"
           resizeMode="contain"
@@ -73,48 +74,51 @@ const Start: React.FC = () => {
         <CustomButton
           title="Sign In"
           onPress={() => router.replace("/(auth)/sign-in" as Href)}
-          className="bg-black w-[140px]"
+          className="w-[140px]"
+          style={{ backgroundColor: "#48A6A7" }}
         />
         <CustomButton
           title="Sign Up"
-          onPress={() => setIsModalVisible(true)} // Show modal on Sign Up click
-          className="bg-gray-500 w-[140px]"
+          onPress={() => setIsModalVisible(true)}
+          className="w-[140px]"
+          style={{ backgroundColor: "#9ACBD0" }}
         />
       </View>
 
       {/* Modal for Role Selection */}
       <Modal
         visible={isModalVisible}
-        transparent={true}
+        transparent
         animationType="slide"
         onRequestClose={() => setIsModalVisible(false)}
       >
         <View className="flex-1 justify-center items-center bg-black bg-opacity-50">
           <View className="w-4/5 bg-white rounded-lg p-6">
-            <Text className="text-lg font-bold text-gray-800 text-center mb-4">
+            <Text className="text-lg font-bold text-[#006A71] text-center mb-4">
               Select Your Role
             </Text>
+
             <CustomButton
               title="Teacher"
               onPress={() => {
-                setIsModalVisible(false); // Hide modal
-                router.replace("/(auth)/sign-up-teacher" as Href); // Navigate to Teacher Sign-Up
+                setIsModalVisible(false);
+                router.replace("/(auth)/sign-up-teacher" as Href);
               }}
-              className="bg-black-800 w-full py-3 mb-4 rounded-lg"
+              className="w-full py-3 mb-4 rounded-lg"
+              style={{ backgroundColor: "#48A6A7" }}
             />
             <CustomButton
               title="Parent"
               onPress={() => {
-                setIsModalVisible(false); // Hide modal
-                router.replace("/(auth)/sign-up" as Href); // Navigate to Parent Sign-Up
+                setIsModalVisible(false);
+                router.replace("/(auth)/sign-up" as Href);
               }}
-              className="bg-gray-500 w-full py-3 rounded-lg"
+              className="w-full py-3 rounded-lg"
+              style={{ backgroundColor: "#48A6A7" }}
             />
-            <TouchableOpacity
-              onPress={() => setIsModalVisible(false)}
-              className="mt-4"
-            >
-              <Text className="text-center text-gray-500 underline">
+
+            <TouchableOpacity onPress={() => setIsModalVisible(false)}>
+              <Text className="text-center text-[#006A71] underline mt-4">
                 Cancel
               </Text>
             </TouchableOpacity>
