@@ -5,7 +5,8 @@ import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { ActivityIndicator, View, Text, Image } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { database, ref, set } from "@/(api)/firebaseConfig";
+import { database } from "@/(api)/firebaseConfig";
+import { ref, set } from "firebase/database";
 import { ReactNativeModal } from "react-native-modal";
 import CustomButton from "@components/CustomButton";
 import { images } from "@/constants";
@@ -210,61 +211,83 @@ const FaceDetection = () => {
         justifyContent: "center",
         alignItems: "center",
         backgroundColor: "#F2EFE7",
+        paddingHorizontal: 24,
       }}
     >
       {loading ? (
         <View style={{ alignItems: "center" }}>
-          <Text style={{ fontSize: 24, marginBottom: 20, textAlign: "center" }}>
-            This process may take a minute.
+          <Text
+            style={{
+              fontSize: 22,
+              fontWeight: "bold",
+              color: "#006A71",
+              textAlign: "center",
+              marginBottom: 10,
+            }}
+          >
+            Processing Image...
           </Text>
-          <Text style={{ fontSize: 24, marginBottom: 20, textAlign: "center" }}>
-            Please wait...
+          <Text
+            style={{
+              fontSize: 16,
+              color: "#9ACBD0",
+              marginBottom: 20,
+              textAlign: "center",
+            }}
+          >
+            This may take up to a minute. Please do not close the app.
           </Text>
           <ActivityIndicator size="large" color="#006A71" />
         </View>
       ) : (
         <>
-          <View style={{ alignItems: "center", marginBottom: 16 }}>
-            <Text
-              style={{ fontSize: 24, fontWeight: "bold", color: "#006A71" }}
-            >
-              Set up Face ID
-            </Text>
-            <Text style={{ color: "#006A71" }}>
-              Scan the face to verify identity
-            </Text>
-            <Text style={{ marginTop: 8, fontStyle: "italic", color: "gray" }}>
-              Tip: Ensure good lighting for better results.
-            </Text>
-          </View>
+          <Text
+            style={{
+              fontSize: 26,
+              fontWeight: "bold",
+              color: "#006A71",
+              textAlign: "center",
+              marginBottom: 6,
+            }}
+          >
+            Set up Face ID
+          </Text>
+          <Text style={{ color: "#9ACBD0", textAlign: "center" }}>
+            Scan your face to verify identity
+          </Text>
+          <Text
+            style={{
+              marginTop: 8,
+              fontStyle: "italic",
+              color: "gray",
+              textAlign: "center",
+            }}
+          >
+            Tip: Ensure good lighting and proper face alignment.
+          </Text>
 
           {imageUri ? (
-            <Image
-              source={{ uri: imageUri }}
-              style={{
-                width: 300,
-                height: 300,
-                marginTop: 20,
-                borderWidth: 2,
-                borderColor: facesDetected ? "#48A6A7" : "#F44336",
-              }}
-            />
-          ) : (
-            <Image
-              source={images.face}
-              style={{ width: 200, height: 200, marginTop: 20 }}
-              resizeMode="contain"
-            />
-          )}
-
-          {!imageUri ? (
-            <CustomButton
-              title="Capture Image"
-              onPress={handleCapture}
-              style={{ marginTop: 20, width: 250, backgroundColor: "#006A71" }}
-            />
-          ) : (
             <>
+              <Image
+                source={{ uri: imageUri }}
+                style={{
+                  width: 280,
+                  height: 280,
+                  marginTop: 25,
+                  borderRadius: 8,
+                  borderWidth: 3,
+                  borderColor: facesDetected ? "#48A6A7" : "#F44336",
+                }}
+              />
+              <Text
+                style={{
+                  marginTop: 10,
+                  fontWeight: "bold",
+                  color: facesDetected ? "#48A6A7" : "#F44336",
+                }}
+              >
+                {facesDetected ? "Face Detected" : "Face Not Valid"}
+              </Text>
               <CustomButton
                 title="Try Again"
                 onPress={handleCapture}
@@ -279,12 +302,29 @@ const FaceDetection = () => {
                   title="Done"
                   onPress={handleDone}
                   style={{
-                    marginTop: 20,
+                    marginTop: 15,
                     width: 250,
                     backgroundColor: "#48A6A7",
                   }}
                 />
               )}
+            </>
+          ) : (
+            <>
+              <Image
+                source={images.face}
+                style={{ width: 200, height: 200, marginTop: 30 }}
+                resizeMode="contain"
+              />
+              <CustomButton
+                title="Capture Face"
+                onPress={handleCapture}
+                style={{
+                  marginTop: 30,
+                  width: 250,
+                  backgroundColor: "#006A71",
+                }}
+              />
             </>
           )}
         </>
@@ -297,7 +337,7 @@ const FaceDetection = () => {
         backdropOpacity={0.5}
         className="justify-center items-center"
       >
-        <View className="bg-white px-6 py-8 rounded-lg w-full max-w-[90%]">
+        <View className="bg-white px-6 py-8 rounded-2xl w-[85%]">
           <Text className="text-2xl font-bold text-center mb-4 text-[#006A71]">
             {errorTitle}
           </Text>

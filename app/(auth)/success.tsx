@@ -1,24 +1,42 @@
 import { useRouter, Href } from "expo-router";
-import React, { useEffect } from "react";
-import { View, Text, StyleSheet } from "react-native";
+import React, { useEffect, useRef } from "react";
+import { Text, StyleSheet, Animated, Easing, Platform } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import CustomButton from "@components/CustomButton";
 
 const SuccessScreen: React.FC = () => {
   const router = useRouter();
 
+  const fadeAnim = useRef(new Animated.Value(0)).current;
+
   useEffect(() => {
+    Animated.timing(fadeAnim, {
+      toValue: 1,
+      duration: 800,
+      easing: Easing.out(Easing.ease),
+      useNativeDriver: true,
+    }).start();
+
     const timer = setTimeout(() => {
       router.replace("/(tabs)/home" as Href);
     }, 5000);
 
     return () => clearTimeout(timer);
-  }, [router]);
+  }, [router, fadeAnim]);
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.content}>
-        <Text style={styles.congratulationsText}>Congratulations!</Text>
+      <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
+        <Text style={styles.emoji} accessibilityLabel="Celebration emoji">
+          🎉
+        </Text>
+        <Text
+          style={styles.congratulationsText}
+          accessibilityRole="header"
+          accessibilityLabel="Congratulations"
+        >
+          Congratulations!
+        </Text>
         <Text style={styles.subText}>
           You are now signed in. Redirecting you to the home screen.
         </Text>
@@ -28,7 +46,7 @@ const SuccessScreen: React.FC = () => {
           onPress={() => router.replace("/(tabs)/home" as Href)}
           style={styles.button}
         />
-      </View>
+      </Animated.View>
     </SafeAreaView>
   );
 };
@@ -36,7 +54,7 @@ const SuccessScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F2EFE7", // ✅ matched your app's consistent light background
+    backgroundColor: "#F2EFE7",
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 24,
@@ -45,10 +63,14 @@ const styles = StyleSheet.create({
     width: "100%",
     alignItems: "center",
   },
+  emoji: {
+    fontSize: 50,
+    marginBottom: 10,
+  },
   congratulationsText: {
     fontSize: 28,
-    fontWeight: "bold",
-    color: "#006A71", // ✅ your teal color
+    fontWeight: Platform.OS === "ios" ? "600" : "bold",
+    color: "#006A71",
     marginBottom: 12,
     textAlign: "center",
   },
@@ -60,10 +82,11 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
   button: {
-    backgroundColor: "#006A71", // Dark teal
+    backgroundColor: "#006A71",
     width: "100%",
     paddingVertical: 15,
-    borderRadius: 10,
+    borderRadius: 12,
+    elevation: 2,
   },
 });
 

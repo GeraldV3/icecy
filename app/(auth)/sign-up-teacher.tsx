@@ -173,7 +173,7 @@ const SignUp_Teacher = () => {
             label="Password"
             placeholder="Enter password"
             icon={icons.lock}
-            rightIcon={icons.eyecross}
+            rightIcon={passwordVisible ? icons.visible : icons.eyecross}
             secureTextEntry={!passwordVisible}
             textContentType="password"
             value={form.password}
@@ -181,7 +181,6 @@ const SignUp_Teacher = () => {
               setForm((prev) => ({ ...prev, password: value }))
             }
             onRightIconPress={() => setPasswordVisible(!passwordVisible)}
-            rightIconStyle={`opacity-${passwordVisible ? "100" : "20"}`}
           />
 
           <CustomButton

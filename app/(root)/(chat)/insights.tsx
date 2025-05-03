@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useLayoutEffect } from "react";
 import {
   View,
   StyleSheet,
@@ -9,7 +9,8 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
+import { Ionicons } from "@expo/vector-icons"; // Use Ionicons for the back arrow
 
 // Tutorial Steps
 const tutorialSteps = [
@@ -29,6 +30,7 @@ const ChatScreen = () => {
   const [showTutorial, setShowTutorial] = useState(false);
   const [sessionId] = useState(generateSessionId());
   const hasShownTutorial = useRef(false); // Track if the modal was already shown
+  const navigation = useNavigation();
 
   useFocusEffect(
     React.useCallback(() => {
@@ -41,6 +43,27 @@ const ChatScreen = () => {
   );
 
   const closeTutorial = () => setShowTutorial(false);
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      title: " EYES Bot", // Title at the top of the screen
+      headerLeft: () => (
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          {/* Use Ionicons back arrow */}
+          <Ionicons name="arrow-back" size={30} color="#007bff" />
+        </TouchableOpacity>
+      ),
+      headerStyle: {
+        backgroundColor: "#fff", // Set the header background color
+        elevation: 0, // Remove shadow from header
+      },
+      headerTitleStyle: {
+        color: "#006A71", // Text color for the title
+        fontWeight: "bold",
+        fontSize: 20,
+      },
+    });
+  }, [navigation]);
 
   return (
     <SafeAreaView style={styles.safeContainer}>
@@ -92,14 +115,13 @@ const ChatScreen = () => {
 const styles = StyleSheet.create({
   safeContainer: {
     flex: 1,
-    backgroundColor: "#F2EFE7",
+    backgroundColor: "#FFF",
   },
   container: {
     flex: 1,
   },
   webview: {
     flex: 1,
-    marginBottom: 25,
   },
   tutorialOverlay: {
     flex: 1,

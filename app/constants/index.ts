@@ -8,6 +8,7 @@ import email from "@assets/icons/email.png";
 import lock from "@assets/icons/lock.png";
 import person from "@assets/icons/person.png";
 import graph from "@assets/icons/line-chart.png";
+import visible from "@assets/icons/visible.png";
 
 // IMAGES
 import check from "@assets/images/check.png";
@@ -46,6 +47,7 @@ export const icons = {
   lock,
   person,
   graph,
+  visible,
 };
 
 export const images = {

@@ -1,8 +1,5 @@
-// firebase.ts
-
-// Import required Firebase modules
-import { initializeApp, getApps, getApp } from "firebase/app";
-import { getDatabase, ref, set } from "firebase/database";
+import { initializeApp, getApps, getApp } from "firebase/app"; // Correct import for app
+import { getDatabase } from "firebase/database"; // Keep getDatabase import as is
 
 // Firebase configuration object
 const firebaseConfig = {
@@ -16,11 +13,14 @@ const firebaseConfig = {
   appId: "1:929031932923:android:97ff76d4259e73209a195e",
 };
 
-// Initialize Firebase app (prevent re-initialization during hot reload)
-const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+// Initialize Firebase app only if it's not already initialized
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
 
-// Initialize Firebase Realtime Database
+// Initialize the Firebase Realtime Database
 const database = getDatabase(app);
 
-// Export necessary utilities
-export { app, database, ref, set };
+// Debugging: Ensure Firebase is initialized properly
+console.log("Firebase App Initialized:", app);
+
+// Export app and database
+export { app, database };

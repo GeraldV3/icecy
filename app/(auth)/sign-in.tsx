@@ -20,6 +20,15 @@ const SignIn = () => {
   const { signIn, setActive, isLoaded } = signInInstance || {};
   const router = useRouter();
 
+  const COLORS = {
+    background: "#F2EFE7",
+    title: "#006A71",
+    subtitle: "#9ACBD0",
+    buttonPrimary: "#48A6A7",
+    modalOverlay: "rgba(0,0,0,0.5)",
+    modalBackground: "#FFFFFF",
+  };
+
   const [form, setForm] = useState({
     email: "",
     password: "",
@@ -201,7 +210,7 @@ const SignIn = () => {
             label="Password"
             placeholder="Enter password"
             icon={icons.lock}
-            rightIcon={icons.eyecross}
+            rightIcon={passwordVisible ? icons.visible : icons.eyecross}
             secureTextEntry={!passwordVisible}
             textContentType="password"
             value={form.password}
@@ -209,7 +218,7 @@ const SignIn = () => {
               setForm({ ...form, password: value })
             }
             onRightIconPress={() => setPasswordVisible(!passwordVisible)}
-            rightIconStyle={`opacity-${passwordVisible ? "100" : "50"}`}
+            rightIconStyle={{ opacity: 0.3 }}
           />
 
           <Text
@@ -317,52 +326,57 @@ const SignIn = () => {
       {/* Role Selection Modal */}
       <Modal
         visible={roleModalVisible}
-        transparent={true}
+        transparent
         animationType="slide"
         onRequestClose={() => setRoleModalVisible(false)}
       >
-        <View className="flex-1 justify-center items-center bg-black bg-opacity-50">
-          <View className="w-4/5 bg-white rounded-lg p-6">
-            <Text className="text-lg font-bold text-[#006A71] text-center mb-4">
+        <View
+          className="flex-1 justify-center items-center"
+          style={{ backgroundColor: COLORS.modalOverlay }}
+        >
+          <View
+            className="w-4/5 rounded-lg p-6"
+            style={{ backgroundColor: COLORS.modalBackground }}
+          >
+            <Text
+              className="text-lg font-bold text-center mb-4"
+              style={{ color: COLORS.title }}
+              accessibilityRole="header"
+            >
               Select Your Role
             </Text>
+
             <CustomButton
               title="Teacher"
               onPress={() => {
-                try {
-                  setRoleModalVisible(false);
-                  router.replace("/(auth)/sign-up-teacher");
-                } catch (error) {
-                  console.error("Navigation error (Teacher):", error);
-                  showErrorModal(
-                    "Navigation Error",
-                    "Unable to navigate to Teacher Sign Up.",
-                  );
-                }
+                setRoleModalVisible(false);
+                router.replace("/(auth)/sign-up-teacher");
               }}
-              className="bg-[#48A6A7] w-full py-3 mb-4 rounded-lg"
+              className="w-full py-3 mb-4 rounded-lg"
+              style={{ backgroundColor: COLORS.buttonPrimary }}
+              accessibilityLabel="Register as a teacher"
             />
+
             <CustomButton
               title="Parent"
               onPress={() => {
-                try {
-                  setRoleModalVisible(false);
-                  router.replace("/(auth)/sign-up");
-                } catch (error) {
-                  console.error("Navigation error (Parent):", error);
-                  showErrorModal(
-                    "Navigation Error",
-                    "Unable to navigate to Parent Sign Up.",
-                  );
-                }
+                setRoleModalVisible(false);
+                router.replace("/(auth)/sign-up");
               }}
-              className="bg-[#48A6A7] w-full py-3 rounded-lg"
+              className="w-full py-3 rounded-lg"
+              style={{ backgroundColor: COLORS.buttonPrimary }}
+              accessibilityLabel="Register as a parent"
             />
+
             <TouchableOpacity
               onPress={() => setRoleModalVisible(false)}
-              className="mt-4"
+              accessibilityRole="button"
+              accessibilityLabel="Cancel role selection"
             >
-              <Text className="text-center text-[#9ACBD0] underline">
+              <Text
+                className="text-center underline mt-4"
+                style={{ color: COLORS.title }}
+              >
                 Cancel
               </Text>
             </TouchableOpacity>

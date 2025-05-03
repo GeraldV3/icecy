@@ -273,8 +273,9 @@ const ChatList = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 60,
-    paddingHorizontal: 20,
+    paddingTop: 25,
+    paddingHorizontal: 15,
+    paddingBottom: 60,
     backgroundColor: "#F2EFE7", // Light Beige
   },
   title: {

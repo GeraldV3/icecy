@@ -17,6 +17,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Emotion, emotionsMap, emotionStyles } from "@/(api)/emotionConfig";
 import { images } from "@/constants";
 import { getDatabase, ref, get, onValue } from "firebase/database";
+import { app } from "@/(api)/firebaseConfig"; // Import the initialized Firebase app
 import { useCallback } from "react";
 
 const Home = () => {
@@ -48,19 +49,32 @@ const Home = () => {
   const [filteredStudents, setFilteredStudents] = useState<typeof students>([]);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const [students, setStudents] = useState<
-    {
-      parentId: string; // 🔥 Add this field
-      childName: string;
-      latestEmotion: Emotion;
-      time: number;
-    }[]
-  >([]);
+  const [feedbackModalVisible, setFeedbackModalVisible] = useState(false);
+  const [feedbackMessage, setFeedbackMessage] = useState("");
+  const [feedbackTitle, setFeedbackTitle] = useState("");
+
+  const COLORS = {
+    background: "#F2EFE7",
+    title: "#006A71",
+    subtitle: "#9ACBD0",
+    buttonPrimary: "#48A6A7",
+    modalOverlay: "rgba(0,0,0,0.5)",
+    modalBackground: "#FFFFFF",
+  };
+
+  interface Student {
+    parentId: string;
+    childName: string;
+    latestEmotion: Emotion;
+    time: number;
+  }
+
+  const [students, setStudents] = useState<Student[]>([]); // Using the Student type for the array
 
   useEffect(() => {
-    if (role !== "teacher") return;
+    if (!user || !user.id || role !== "teacher") return; // ✅ safer check
 
-    const db = getDatabase();
+    const db = getDatabase(app); // Use app instance here
     const parentsRef = ref(db, "Users/Teachers/Class-A/Parents");
 
     const unsubscribe = onValue(parentsRef, (snapshot) => {
@@ -95,38 +109,62 @@ const Home = () => {
         });
       });
 
-      setStudents(studentList); // 👈 THIS LINE
-      setFilteredStudents(studentList); // ✅ ADD THIS LINE RIGHT AFTER
+      setStudents(studentList);
+      setFilteredStudents(studentList);
     });
 
     return () => unsubscribe();
-  }, [role]);
+  }, [user, role]);
 
-  // Function to handle saving the name
   const handleSaveName = async () => {
     if (firstName.trim() && lastName.trim()) {
       try {
-        await user?.update({
-          firstName: firstName.trim(),
-          lastName: lastName.trim(),
-        });
-        setNameModalVisible(false);
-        Alert.alert("Success", "Your name has been updated.");
+        if (user) {
+          await user.update({
+            firstName: firstName.trim(),
+            lastName: lastName.trim(),
+          });
+          setNameModalVisible(false);
+          setFeedbackTitle("Success");
+          setFeedbackMessage("Your name has been updated.");
+          setFeedbackModalVisible(true);
+        } else {
+          setFeedbackTitle("Error");
+          setFeedbackMessage("User is not available.");
+          setFeedbackModalVisible(true);
+        }
       } catch (error) {
-        Alert.alert("Error", "Failed to update your name. Please try again.");
+        setFeedbackTitle("Error");
+        setFeedbackMessage("Failed to update your name. Please try again.");
+        setFeedbackModalVisible(true);
         console.error("Update Error:", error);
       }
     } else {
-      Alert.alert("Error", "Please enter both first and last names.");
+      setFeedbackTitle("Error");
+      setFeedbackMessage("Please enter both first and last names.");
+      setFeedbackModalVisible(true);
     }
   };
 
   useEffect(() => {
-    const db = getDatabase();
+    if (user) {
+      const hasName = user.firstName?.trim() && user.lastName?.trim();
+      setFirstName(user.firstName || "");
+      setLastName(user.lastName || "");
+
+      if (!hasName) {
+        setNameModalVisible(true);
+      }
+    }
+  }, [user]);
+
+  useEffect(() => {
+    if (!user || !user.id) return; // ✅ added
+    const db = getDatabase(app); // Use app instance here
     const emotionRef = ref(
       db,
       `Users/Teachers/Class-A/Parents/${
-        role === "teacher" ? selectedStudentId : userId
+        role === "teacher" ? selectedStudentId : user.id
       }/emotions`,
     );
 
@@ -134,25 +172,20 @@ const Home = () => {
       const data = snapshot.val();
       if (!data) return;
 
-      // Convert the object to an array and sort by timestamp (descending order)
       const emotionEntries = Object.entries(data)
         .map(([key, val]: any) => ({
           key,
           ...val,
-          time: new Date(val.time).getTime(), // Ensure that the time is treated as a timestamp (number)
+          time: new Date(val.time).getTime(),
         }))
-        .sort((a, b) => b.time - a.time); // Sort by timestamp (most recent first)
+        .sort((a, b) => b.time - a.time);
 
-      const latestEntry = emotionEntries[0]; // Get the most recent emotion entry
+      const latestEntry = emotionEntries[0];
 
       if (latestEntry && latestEntry.type && latestEntry.type !== "Unknown") {
-        // Set the emotion based on the most recent entry
         setEmotion(latestEntry.type);
-
-        // Set the child name if it's available in the entry
         setChildName(latestEntry.child_name || null);
 
-        // Update history with the latest emotion (to prevent duplicates, filter out same timestamp)
         setHistory((prev) => [
           { emotion: latestEntry.type, timestamp: new Date(latestEntry.time) },
           ...prev.filter(
@@ -162,27 +195,17 @@ const Home = () => {
       }
     });
 
-    return () => unsubscribe(); // Cleanup when the component is unmounted
-  }, [role, selectedStudentId, userId]); // Re-run the effect when userId changes
-
-  // Automatically open the modal if the first or last name is not set
-  useEffect(() => {
-    if (!user?.firstName || !user?.lastName) {
-      setNameModalVisible(true);
-    }
-  }, [user]);
+    return () => unsubscribe();
+  }, [user, role, selectedStudentId]);
 
   useEffect(() => {
     const fetchRole = async () => {
       try {
-        const db = getDatabase();
+        const db = getDatabase(app); // Use app instance here
+        console.log("Fetching role for User ID:", userId); // ✅ change to user.id
 
-        console.log("Fetching role for User ID:", userId);
-
-        // Check for teacher role
-        const teacherRef = ref(db, `Users/Teachers/TeacherId/${userId}`);
+        const teacherRef = ref(db, `Users/Teachers/TeacherId/${userId}`); // ✅ change to user.id
         const teacherSnapshot = await get(teacherRef);
-        console.log("Teacher Snapshot exists:", teacherSnapshot.exists());
 
         if (teacherSnapshot.exists()) {
           setRole("teacher");
@@ -190,10 +213,8 @@ const Home = () => {
           return;
         }
 
-        // Check for parent role
-        const parentRef = ref(db, `Users/Teachers/Class-A/Parents/${userId}`);
+        const parentRef = ref(db, `Users/Teachers/Class-A/Parents/${userId}`); // ✅ change to user.id
         const parentSnapshot = await get(parentRef);
-        console.log("Parent Snapshot exists:", parentSnapshot.exists());
 
         if (parentSnapshot.exists()) {
           setRole("parent");
@@ -201,30 +222,28 @@ const Home = () => {
           return;
         }
 
-        // No role found
         console.warn("No role found for User ID:", userId);
-        setRole("unknown"); // Optional: Handle undefined role
+        setRole("unknown");
       } catch (error) {
         console.error("Error in fetchRole:", error);
       }
     };
 
-    if (!role && userId) {
+    if (!role && user) {
       console.log("Triggering fetchRole. Current role is null.");
       fetchRole();
     }
-  }, [userId, role]);
+  }, [user, role, userId]); // ✅ No more ESLint warning now
 
   useEffect(() => {
-    if (!userId) return;
+    if (!user) return;
 
-    const db = getDatabase();
-    const parentRef = ref(db, `Users/Teachers/Class-A/Parents/${userId}`);
+    const db = getDatabase(app); // Use app instance here
+    const parentRef = ref(db, `Users/Teachers/Class-A/Parents/${user.id}`);
 
     const unsubscribe = onValue(parentRef, (snapshot) => {
       const data = snapshot.val();
       if (data) {
-        // Extract child's name from the data
         const childNameFromDB = data.childName || null;
         setChildName(childNameFromDB);
         console.log("Fetched Child Name:", childNameFromDB);
@@ -233,12 +252,13 @@ const Home = () => {
       }
     });
 
-    return () => unsubscribe(); // Cleanup when the component is unmounted
-  }, [userId]);
+    return () => unsubscribe();
+  }, [user]);
 
   const fetchIds = useCallback(async () => {
+    if (!user || !role) return;
     try {
-      const db = getDatabase();
+      const db = getDatabase(app); // Use app instance here
       const classARef = ref(db, `Users/Teachers/Class-A`);
       const snapshot = await get(classARef);
 
@@ -251,7 +271,7 @@ const Home = () => {
         } else if (role === "parent") {
           const parents = data.Parents || {};
           const parentEntry = Object.entries(parents).find(
-            ([, parentInfo]: any) => parentInfo.clerkId === userId,
+            ([, parentInfo]: any) => parentInfo.clerkId === user.id,
           );
 
           if (parentEntry) {
@@ -272,27 +292,27 @@ const Home = () => {
     } catch (error) {
       console.error("Error fetching IDs:", error);
     }
-  }, [role, userId]);
+  }, [role, user]);
 
   useEffect(() => {
-    if (role && userId) {
+    if (user && role) {
       fetchIds();
     }
-  }, [fetchIds, role, userId]);
+  }, [fetchIds, user, role]);
 
   useEffect(() => {
     console.log(`Role passed to Home component: ${role}`);
   }, [role]);
 
   useEffect(() => {
-    fetchIds(); // Call fetch IDs on mount
-  }, [fetchIds, role, userId]);
+    fetchIds();
+  }, [fetchIds, user, role]);
 
   useEffect(() => {
     console.log(
-      `Role: ${role}, User ID: ${userId}, Teacher ID: ${teacherId}, Parent ID: ${parentId}`,
+      `Role: ${role}, User ID: ${user?.id}, Teacher ID: ${teacherId}, Parent ID: ${parentId}`,
     );
-  }, [role, userId, teacherId, parentId]);
+  }, [role, user, teacherId, parentId]);
 
   useEffect(() => {
     if (emotion) {
@@ -304,9 +324,17 @@ const Home = () => {
     }
   }, [emotion]);
 
-  // Fetch emotion history from Firebase
+  interface EmotionData {
+    type: Emotion; // Emotion type (e.g., "Happy", "Sad", etc.)
+    time: number; // Timestamp (e.g., the time the emotion was recorded)
+  }
+
   const fetchEmotionHistory = useCallback(async () => {
-    const targetId = role === "teacher" ? selectedStudentId : userId;
+    if (!user || !role) {
+      console.warn("Role or User ID is not defined.");
+      return;
+    }
+    const targetId = role === "teacher" ? selectedStudentId : user.id;
 
     if (!targetId) {
       console.warn("No target ID found to fetch emotion history.");
@@ -314,7 +342,7 @@ const Home = () => {
     }
 
     try {
-      const db = getDatabase();
+      const db = getDatabase(app);
       const emotionRef = ref(
         db,
         `Users/Teachers/Class-A/Parents/${targetId}/emotions`,
@@ -324,16 +352,14 @@ const Home = () => {
       if (snapshot.exists()) {
         const data = snapshot.val();
 
-        type EmotionData = {
-          type: Emotion;
-          time: number;
-        };
-
+        // Define EmotionData type here
         const emotionHistory = Object.entries(data).map(([key, value]) => {
+          // Cast value to EmotionData type
           const typedValue = value as EmotionData;
+
           return {
-            emotion: typedValue.type || "Unknown",
-            timestamp: typedValue.time ? new Date(typedValue.time) : new Date(),
+            emotion: typedValue.type || "Unknown", // Set emotion type
+            timestamp: typedValue.time ? new Date(typedValue.time) : new Date(), // Convert timestamp to Date
           };
         });
 
@@ -350,7 +376,7 @@ const Home = () => {
       console.error("Error fetching emotion history:", error);
       Alert.alert("Error", "Failed to fetch emotion history.");
     }
-  }, [role, selectedStudentId, userId]);
+  }, [role, selectedStudentId, user]);
 
   useEffect(() => {
     if (isModalVisible) {
@@ -371,74 +397,98 @@ const Home = () => {
       {/* Name Modal */}
       <ReactNativeModal
         isVisible={isNameModalVisible}
-        onBackdropPress={() => {}}
-        onBackButtonPress={() => {}}
+        onBackdropPress={() => {
+          if (firstName.trim() && lastName.trim()) setNameModalVisible(false);
+        }}
+        onBackButtonPress={() => {
+          if (firstName.trim() && lastName.trim()) setNameModalVisible(false);
+        }}
+        backdropOpacity={1}
+        backdropColor={COLORS.modalOverlay}
         style={{ justifyContent: "center", alignItems: "center" }}
       >
         <View
           style={{
-            backgroundColor: "white",
-            borderRadius: 12,
-            padding: 20,
-            width: "85%",
+            backgroundColor: COLORS.modalBackground,
+            borderRadius: 16,
+            padding: 24,
+            width: "90%",
             alignItems: "center",
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.2,
+            shadowRadius: 8,
+            elevation: 6,
           }}
         >
           <Text
             style={{
-              fontSize: 20,
+              fontSize: 22,
               fontWeight: "bold",
-              marginBottom: 16,
+              marginBottom: 20,
               textAlign: "center",
-              color: "#333",
+              color: COLORS.title,
             }}
           >
-            Tell me about yourself
+            Tell us your name
           </Text>
+
           <TextInput
             value={firstName}
             onChangeText={setFirstName}
             placeholder="First Name"
+            placeholderTextColor="#999"
             style={{
               width: "100%",
               borderWidth: 1,
-              borderColor: "#ccc",
-              borderRadius: 8,
-              paddingHorizontal: 10,
-              paddingVertical: 8,
-              marginBottom: 12,
+              borderColor: COLORS.buttonPrimary,
+              borderRadius: 10,
+              paddingHorizontal: 14,
+              paddingVertical: 10,
+              marginBottom: 14,
               fontSize: 16,
-              backgroundColor: "#f9f9f9",
+              backgroundColor: COLORS.background,
+              color: "#333",
             }}
           />
           <TextInput
             value={lastName}
             onChangeText={setLastName}
             placeholder="Last Name"
+            placeholderTextColor="#999"
             style={{
               width: "100%",
               borderWidth: 1,
-              borderColor: "#ccc",
-              borderRadius: 8,
-              paddingHorizontal: 10,
-              paddingVertical: 8,
+              borderColor: COLORS.buttonPrimary,
+              borderRadius: 10,
+              paddingHorizontal: 14,
+              paddingVertical: 10,
               marginBottom: 20,
               fontSize: 16,
-              backgroundColor: "#f9f9f9",
+              backgroundColor: COLORS.background,
+              color: "#333",
             }}
           />
+
           <TouchableOpacity
             onPress={handleSaveName}
             style={{
-              backgroundColor: "black",
+              backgroundColor: COLORS.title,
               paddingVertical: 12,
-              paddingHorizontal: 24,
-              borderRadius: 8,
+              paddingHorizontal: 28,
+              borderRadius: 10,
               alignItems: "center",
-              width: "50%",
+              width: "60%",
             }}
           >
-            <Text style={{ fontWeight: "bold", fontSize: 16, color: "white" }}>
+            <Text
+              style={{
+                fontWeight: "bold",
+                fontSize: 16,
+                color: "#fff",
+                textTransform: "uppercase",
+              }}
+            >
               Save
             </Text>
           </TouchableOpacity>
@@ -515,11 +565,13 @@ const Home = () => {
             fontSize: 26,
             fontWeight: "bold",
             color: "#333",
-            textAlign: "center",
+            textAlign: "center", // Keeps the text centered within its container
             textTransform: "capitalize", // Ensures first letter is always uppercase
+            flex: 1, // Takes up available space in the row to allow centering
           }}
         >
-          Welcome to Project EYES
+          Welcome, {firstName || "Project EYES"}{" "}
+          {/* Fallback to "Project EYES" if firstName is not available */}
         </Text>
 
         {role === "parent" && (
@@ -532,91 +584,220 @@ const Home = () => {
         )}
       </View>
 
+      <ReactNativeModal
+        isVisible={feedbackModalVisible}
+        onBackdropPress={() => setFeedbackModalVisible(false)}
+        backdropOpacity={0.7}
+        backdropColor="rgba(0,0,0,0.5)"
+        style={{ justifyContent: "center", alignItems: "center" }}
+      >
+        <View
+          style={{
+            backgroundColor: "#F2EFE7",
+            padding: 24,
+            borderRadius: 16,
+            width: "85%",
+            alignItems: "center",
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.2,
+            shadowRadius: 8,
+            elevation: 6,
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 20,
+              fontWeight: "bold",
+              marginBottom: 12,
+              color: feedbackTitle === "Error" ? "#B00020" : "#006A71",
+            }}
+          >
+            {feedbackTitle}
+          </Text>
+          <Text
+            style={{
+              fontSize: 16,
+              color: "#333",
+              textAlign: "center",
+              marginBottom: 20,
+            }}
+          >
+            {feedbackMessage}
+          </Text>
+          <TouchableOpacity
+            onPress={() => setFeedbackModalVisible(false)}
+            style={{
+              backgroundColor: "#48A6A7",
+              paddingVertical: 10,
+              paddingHorizontal: 24,
+              borderRadius: 10,
+            }}
+          >
+            <Text style={{ color: "#fff", fontWeight: "bold", fontSize: 16 }}>
+              OK
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </ReactNativeModal>
+
       {/* Scanner Section */}
       <View className="flex-1 justify-center items-center my-12">
-        {role === "parent" && emotion ? (
+        {role === "parent" ? (
           <View className="mb-5 items-center">
-            <View
-              style={{
-                marginBottom: 100,
-                height: 350,
-                width: 300,
-                backgroundColor: emotionStyles[emotion].rectangleColor,
-                paddingVertical: 16,
-                borderRadius: 12,
-                alignItems: "center",
-              }}
-            >
-              <Text
-                style={{
-                  fontSize: 30,
-                  fontWeight: "bold",
-                  color: emotionStyles[emotion].textColor,
-                  textAlign: "center",
-                  marginBottom: 8,
-                }}
-              >
-                How is your child feeling today?
-              </Text>
-              <Text
-                style={{
-                  fontSize: 25,
-                  fontWeight: "semibold",
-                  color: emotionStyles[emotion].textColor,
-                }}
-              >
-                {emotion}
-              </Text>
-
-              <Animated.Image
-                source={emotionsMap[emotion][frameIndex]}
-                style={{
-                  resizeMode: "contain",
-                  width: 380,
-                  height: 220,
-                  opacity: animation.interpolate({
-                    inputRange: [0, 1, 2],
-                    outputRange: [0.8, 1, 0.8],
-                  }),
-                  transform: [
-                    {
-                      scale: animation.interpolate({
-                        inputRange: [0, 1, 2],
-                        outputRange: [1, 1.05, 1],
-                      }),
-                    },
-                  ],
-                }}
-              />
-            </View>
-            {childName && (
-              <View
-                style={{
-                  marginTop: -80,
-                  backgroundColor: "#fff",
-                  paddingVertical: 8,
-                  paddingHorizontal: 20,
-                  borderRadius: 20,
-                  borderWidth: 2,
-                  borderColor: emotionStyles[emotion]?.rectangleColor || "#ccc",
-                  shadowColor: "#000",
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.2,
-                  shadowRadius: 4,
-                  elevation: 4,
-                }}
-              >
-                <Text
+            {emotion ? (
+              <>
+                <View
                   style={{
-                    fontSize: 18,
-                    fontWeight: "700",
-                    color: emotionStyles[emotion]?.textColor || "#333",
-                    textAlign: "center",
+                    marginBottom: 100,
+                    height: 350,
+                    width: 300,
+                    backgroundColor: emotionStyles[emotion].rectangleColor,
+                    paddingVertical: 16,
+                    borderRadius: 12,
+                    alignItems: "center",
                   }}
                 >
-                  Child’s Name: {childName}
-                </Text>
-              </View>
+                  <Text
+                    style={{
+                      fontSize: 30,
+                      fontWeight: "bold",
+                      color: emotionStyles[emotion].textColor,
+                      textAlign: "center",
+                      marginBottom: 8,
+                    }}
+                  >
+                    How is your child feeling today?
+                  </Text>
+                  <Text
+                    style={{
+                      fontSize: 25,
+                      fontWeight: "600",
+                      color: emotionStyles[emotion].textColor,
+                    }}
+                  >
+                    {emotion}
+                  </Text>
+
+                  <Animated.Image
+                    source={emotionsMap[emotion][frameIndex]}
+                    style={{
+                      resizeMode: "contain",
+                      width: 380,
+                      height: 220,
+                      opacity: animation.interpolate({
+                        inputRange: [0, 1, 2],
+                        outputRange: [0.8, 1, 0.8],
+                      }),
+                      transform: [
+                        {
+                          scale: animation.interpolate({
+                            inputRange: [0, 1, 2],
+                            outputRange: [1, 1.05, 1],
+                          }),
+                        },
+                      ],
+                    }}
+                  />
+                </View>
+
+                {childName && (
+                  <View
+                    style={{
+                      marginTop: -80,
+                      backgroundColor: "#fff",
+                      paddingVertical: 8,
+                      paddingHorizontal: 20,
+                      borderRadius: 20,
+                      borderWidth: 2,
+                      borderColor:
+                        emotionStyles[emotion]?.rectangleColor || "#ccc",
+                      shadowColor: "#000",
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: 0.2,
+                      shadowRadius: 4,
+                      elevation: 4,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 18,
+                        fontWeight: "700",
+                        color: emotionStyles[emotion]?.textColor || "#333",
+                        textAlign: "center",
+                      }}
+                    >
+                      Child’s Name: {childName}
+                    </Text>
+                  </View>
+                )}
+              </>
+            ) : (
+              <>
+                <View
+                  style={{
+                    marginBottom: 100,
+                    height: 350,
+                    width: 300,
+                    backgroundColor: "#e0e0e0",
+                    paddingVertical: 16,
+                    borderRadius: 12,
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <Text
+                    style={{
+                      fontSize: 26,
+                      fontWeight: "bold",
+                      color: "#333",
+                      textAlign: "center",
+                      marginBottom: 40,
+                    }}
+                  >
+                    No emotion detected yet
+                  </Text>
+                  <Image
+                    source={images.face}
+                    style={{
+                      width: 200,
+                      height: 200,
+                      resizeMode: "contain",
+                      opacity: 0.5,
+                    }}
+                  />
+                </View>
+
+                {childName && (
+                  <View
+                    style={{
+                      marginTop: -80,
+                      backgroundColor: "#fff",
+                      paddingVertical: 8,
+                      paddingHorizontal: 20,
+                      borderRadius: 20,
+                      borderWidth: 2,
+                      borderColor: "#ccc",
+                      shadowColor: "#000",
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: 0.2,
+                      shadowRadius: 4,
+                      elevation: 4,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 18,
+                        fontWeight: "700",
+                        color: "#333",
+                        textAlign: "center",
+                      }}
+                    >
+                      Child’s Name: {childName}
+                    </Text>
+                  </View>
+                )}
+              </>
             )}
           </View>
         ) : role === "teacher" ? (
@@ -817,33 +998,102 @@ const Home = () => {
       </View>
 
       <ReactNativeModal
-        isVisible={isStudentPickerVisible}
-        onBackdropPress={() => setStudentPickerVisible(false)}
+        isVisible={isNameModalVisible}
+        onBackdropPress={() => {
+          if (firstName.trim() && lastName.trim()) setNameModalVisible(false);
+        }}
+        onBackButtonPress={() => {
+          if (firstName.trim() && lastName.trim()) setNameModalVisible(false);
+        }}
+        backdropOpacity={1}
+        backdropColor="rgba(0,0,0,0.5)" // modalOverlay
+        style={{ justifyContent: "center", alignItems: "center" }}
       >
         <View
-          style={{ backgroundColor: "#fff", borderRadius: 12, padding: 20 }}
+          style={{
+            backgroundColor: "#F2EFE7", // modalBackground / background
+            borderRadius: 16,
+            padding: 24,
+            width: "90%",
+            alignItems: "center",
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.2,
+            shadowRadius: 8,
+            elevation: 6,
+          }}
         >
-          <Text style={{ fontSize: 18, fontWeight: "bold", marginBottom: 10 }}>
-            Select a student
+          <Text
+            style={{
+              fontSize: 22,
+              fontWeight: "bold",
+              marginBottom: 20,
+              textAlign: "center",
+              color: "#006A71", // title
+            }}
+          >
+            Tell us your name
           </Text>
-          {students.map((student, index) => (
-            <TouchableOpacity
-              key={index}
-              onPress={() => {
-                setSelectedStudentId(student.parentId); // Store parentId
-                setModalVisible(true);
-                setStudentPickerVisible(false);
-              }}
+
+          <TextInput
+            value={firstName}
+            onChangeText={setFirstName}
+            placeholder="First Name"
+            placeholderTextColor="#858585" // subtitle
+            style={{
+              width: "100%",
+              borderWidth: 1,
+              borderColor: "#48A6A7", // button
+              borderRadius: 10,
+              paddingHorizontal: 14,
+              paddingVertical: 10,
+              marginBottom: 14,
+              fontSize: 16,
+              backgroundColor: "#FFFFFF",
+              color: "#006A71", // title text
+            }}
+          />
+          <TextInput
+            value={lastName}
+            onChangeText={setLastName}
+            placeholder="Last Name"
+            placeholderTextColor="#858585"
+            style={{
+              width: "100%",
+              borderWidth: 1,
+              borderColor: "#48A6A7",
+              borderRadius: 10,
+              paddingHorizontal: 14,
+              paddingVertical: 10,
+              marginBottom: 20,
+              fontSize: 16,
+              backgroundColor: "#FFFFFF",
+              color: "#006A71",
+            }}
+          />
+
+          <TouchableOpacity
+            onPress={handleSaveName}
+            style={{
+              backgroundColor: "#006A71",
+              paddingVertical: 12,
+              paddingHorizontal: 28,
+              borderRadius: 10,
+              alignItems: "center",
+              width: "60%",
+            }}
+          >
+            <Text
               style={{
-                padding: 12,
-                backgroundColor: "#f0f0f0",
-                marginBottom: 10,
-                borderRadius: 8,
+                fontWeight: "bold",
+                fontSize: 16,
+                color: "#FFFFFF",
+                textTransform: "uppercase",
               }}
             >
-              <Text style={{ fontSize: 16 }}>{student.childName}</Text>
-            </TouchableOpacity>
-          ))}
+              Save
+            </Text>
+          </TouchableOpacity>
         </View>
       </ReactNativeModal>
 
@@ -884,7 +1134,6 @@ const Home = () => {
               ✕
             </Text>
           </TouchableOpacity>
-
           <Text
             style={{
               fontSize: 20,
@@ -896,7 +1145,6 @@ const Home = () => {
           >
             Emotion History
           </Text>
-
           {history.length > 0 ? (
             <FlatList
               data={history}
@@ -953,6 +1201,37 @@ const Home = () => {
               No history available
             </Text>
           )}
+        </View>
+      </ReactNativeModal>
+
+      <ReactNativeModal
+        isVisible={isStudentPickerVisible}
+        onBackdropPress={() => setStudentPickerVisible(false)}
+      >
+        <View
+          style={{ backgroundColor: "#fff", borderRadius: 12, padding: 20 }}
+        >
+          <Text style={{ fontSize: 18, fontWeight: "bold", marginBottom: 10 }}>
+            Select a student
+          </Text>
+          {students.map((student, index) => (
+            <TouchableOpacity
+              key={index}
+              onPress={() => {
+                setSelectedStudentId(student.parentId); // Store parentId
+                setModalVisible(true);
+                setStudentPickerVisible(false);
+              }}
+              style={{
+                padding: 12,
+                backgroundColor: "#f0f0f0",
+                marginBottom: 10,
+                borderRadius: 8,
+              }}
+            >
+              <Text style={{ fontSize: 16 }}>{student.childName}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
       </ReactNativeModal>
     </SafeAreaView>

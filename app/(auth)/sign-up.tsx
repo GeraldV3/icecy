@@ -4,6 +4,7 @@ import { getDatabase, ref, set } from "firebase/database";
 import { useState, useEffect } from "react";
 import { ScrollView, Text, View, TouchableOpacity, Image } from "react-native";
 import { ReactNativeModal } from "react-native-modal";
+import { ActivityIndicator } from "react-native";
 
 import { useForm } from "@/(auth)/FormContext";
 import CustomButton from "@components/CustomButton";
@@ -44,6 +45,7 @@ const SignUp = () => {
   const [errorTitle, setErrorTitle] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [rescanModalVisible, setRescanModalVisible] = useState(false); // 👈 added
+  const [verifying, setVerifying] = useState(false);
 
   const showErrorModal = (title: string, message: string) => {
     setErrorTitle(title);
@@ -132,6 +134,8 @@ const SignUp = () => {
       );
     }
 
+    setVerifying(true); // Start loading
+
     try {
       const completeSignUp = await signUp.attemptEmailAddressVerification({
         code: verification.code,
@@ -153,8 +157,6 @@ const SignUp = () => {
           },
         };
 
-        console.log("Saving Parent to Firebase with payload:", payload);
-
         await set(
           ref(db, `Users/Teachers/${teacherId}/Parents/${parentId}`),
           payload,
@@ -175,6 +177,8 @@ const SignUp = () => {
         error: "Verification failed. Please try again.",
         state: "failed",
       }));
+    } finally {
+      setVerifying(false); // Stop loading
     }
   };
 
@@ -203,7 +207,7 @@ const SignUp = () => {
             label="Password"
             placeholder="Enter password"
             icon={icons.lock}
-            rightIcon={icons.eyecross}
+            rightIcon={passwordVisible ? icons.visible : icons.eyecross}
             secureTextEntry={!passwordVisible}
             textContentType="password"
             value={form.password}
@@ -211,8 +215,9 @@ const SignUp = () => {
               setForm((prev) => ({ ...prev, password: value }))
             }
             onRightIconPress={() => setPasswordVisible(!passwordVisible)}
-            rightIconStyle={`opacity-${passwordVisible ? "100" : "50"}`}
+            rightIconStyle={{ opacity: 0.3 }}
           />
+
           <InputField
             label="Child Name"
             placeholder="Enter child name"
@@ -243,7 +248,7 @@ const SignUp = () => {
           <CustomButton
             title="Sign Up"
             onPress={handleSignUp}
-            className="mt-6 bg-[#006A71]"
+            className="mt-6 bg-[#48A6A7]"
           />
 
           <Link
@@ -295,11 +300,19 @@ const SignUp = () => {
               </Text>
             )}
 
-            <CustomButton
-              title="Verify Email"
-              onPress={onPressVerify}
-              className="mt-5 bg-[#48A6A7]"
-            />
+            {verifying ? (
+              <ActivityIndicator
+                size="large"
+                color="#006A71"
+                style={{ marginTop: 20 }}
+              />
+            ) : (
+              <CustomButton
+                title="Verify Email"
+                onPress={onPressVerify}
+                className="mt-5 bg-[#48A6A7]"
+              />
+            )}
           </View>
         </ReactNativeModal>
 
@@ -329,8 +342,9 @@ const SignUp = () => {
           isVisible={errorModalVisible}
           onBackdropPress={() => setErrorModalVisible(false)}
           backdropOpacity={0.5}
+          className="justify-center items-center" // ✅ This centers the modal
         >
-          <View className="bg-white px-6 py-8 rounded-lg w-full max-w-[90%]">
+          <View className="bg-white px-6 py-8 rounded-lg w-[85%]">
             <Text className="text-2xl font-bold text-center mb-4 text-[#006A71]">
               {errorTitle}
             </Text>
